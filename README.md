@@ -36,12 +36,16 @@ Edit the `my_project/config/config.json` file to set the locations of the final 
 
 The folders must already exist for the script to work. The script will copy the final documents to these folders.
 
+The purpose of these folders is to allow files to be automatically copied to locations outside of the project folder, which may be a git repository.
+
+The HTML and Markdown documents copied to the publish directories are accompanied by a table of contents file with links to the individual document files. The sorting of the items in the table of contents can be controlled using the `document_order` key in the `config.json` file. The value of this key is a list of document names. The documents will be sorted in the order they appear in the list. Documents not in the list will be sorted alphabetically after the documents in the list. The pdf files copied to the publish directories are renamed after their source directories.
+
 Add content to the `my_project/source` folder, replacing the example content. Each folder in `my_project/source` corresponds to a document. Rename the folders or add new folders to hold the documents to be processed.
 
 Each document folder in `my_project/source` should contain the following files and folders:
 
 * `document.md` - the document in Markdown format.
-* `settings.yaml` - the settings for the document in YAML format. This file is used to add title, header, and footer content to the document. See example below.
+* `settings.yaml` - the settings for the document in YAML format. This file is used to add title, header, and footer content to the document. See examples in the `sample-project` folder.
 * `includes` - a folder containing any files that are to be included with or in the document. Typically this folder will contain images.
 * `data` - a folder of various files to be used/consumed in conjunction with the document (for example data files to be processed using commands in the document). These files will be used to create a `.tar.gz` file named after the folder, for example `document_one.tar.gz`. Once a sharable link to this file is obtained it can be added to the `document_one.txt` file that is automatically created in the `data_to_share_links` folder. The link in `document_one.txt` will then be inserted into the derived documents, replacing any instances of `[DATA_DOWNLOAD_LINK]`, so that readers of the final documents can download the data files.
 * `data_not_tracked` - additional data files and folders to be included in the `.tar.gz` file. Generally this will be used for large files (e.g. larger than 50 MB). The placement of these files in a separate folder allows them to be ignored in git by adding `**/data_not_tracked/` to the `.gitignore` file.
@@ -61,15 +65,3 @@ Useful options for the above command include:
 * `--remove` - remove all generated files and exit. This is useful if you have removed or renamed document folders and want to remove the corresponding output files.
 * `--verbose` - print verbose output. This is useful for monitoring the progress of the script.
 
-The HTML and Markdown documents copied to the publish directories will include a table of contents file with links to the individual document files. The sorting of the items in the table of contents can be controlled using the `document_order` key in the `config.json` file. The value of this key is a list of document names. The documents will be sorted in the order they appear in the list. Documents not in the list will be sorted alphabetically after the documents in the list.
-
-Example of `settings.yaml`:
-
-```yaml
----
-title: "Tutorial: NCBI"
-author: [AFNS 508 - Paul Stothard]
-colorlinks: TRUE
-code-block-font-size: \footnotesize
-...
-```
