@@ -64,4 +64,3 @@ Useful options for the above command include:
 * `--force` - generate all output files even if the source files have not changed.
 * `--remove` - remove all generated files and exit. This is useful if you have removed or renamed document folders and want to remove the corresponding output files.
 * `--verbose` - print verbose output. This is useful for monitoring the progress of the script.
-
