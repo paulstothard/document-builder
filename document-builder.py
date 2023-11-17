@@ -12,6 +12,9 @@ import sys
 import tarfile
 import time
 
+required_major = 3
+required_minor = 8
+
 
 def check_executables(executables, verbose=False):
     for executable, link in executables.items():
@@ -254,6 +257,109 @@ def edit_markdown_includes(folders):
             f.truncate()
 
 
+def generate_assignment_markdown(folders):
+    markdown_output_folder = config["project_markdown_output_folder"]
+
+    for folder in folders:
+        markdown_file = os.path.join(markdown_output_folder, folder, "document.md")
+
+        # determine total marks
+        with open(markdown_file, "r") as f:
+            content = f.read()
+            matches = re.findall(r"### (\d+) marks?", content)
+            total_marks = sum([int(match) for match in matches])
+
+        # insert total marks into document.md
+        with open(markdown_file, "r+") as f:
+            lines = f.readlines()
+            f.seek(0)
+            f.truncate()
+            i = 0
+            marks_added = False
+            while i < len(lines):
+                if lines[i].startswith("#") and not marks_added:
+                    f.write(lines[i])
+                    f.write(f"\n{total_marks} marks total\n")
+                    marks_added = True
+                else:
+                    f.write(lines[i])
+                i += 1
+
+        # create copy of document with answers removed
+        with open(markdown_file, "r") as f:
+            content = f.read()
+            lines = content.splitlines()
+            new_lines = []
+            i = 0
+            while i < len(lines):
+                if lines[i].startswith("### Answer"):
+                    i += 1
+                    while i < len(lines) and not lines[i].startswith("## Question"):
+                        i += 1
+                if i < len(lines):
+                    new_lines.append(lines[i])
+                i += 1
+            new_content = "\n".join(new_lines)
+
+        with open(
+            os.path.join(markdown_output_folder, folder, "document_to_share.md"),
+            "w",
+        ) as f:
+            f.write(new_content)
+
+        # create separate markdown files for each question, with the answers included
+        with open(markdown_file, "r") as f:
+            content = f.read()
+            lines = content.splitlines()
+            new_lines = []
+            question_number = None
+            i = 0
+            while i < len(lines):
+                match = re.match(r"^## Question (\d+)", lines[i])
+                if match or i == len(lines):
+                    if question_number is not None:
+                        # Check if the last line is empty before adding a newline character
+                        new_content = "\n".join(new_lines)
+                        if new_content and not new_content.endswith("\n"):
+                            new_content += "\n"
+                        with open(
+                            os.path.join(
+                                markdown_output_folder,
+                                folder,
+                                f"document_answer_{question_number}.md",
+                            ),
+                            "w",
+                        ) as f:
+                            f.write(new_content)
+                        new_lines = []
+                    if match:
+                        question_number = match.group(1)
+                        new_lines.append(lines[i])
+                elif question_number is not None:
+                    new_lines.append(lines[i])
+                i += 1
+            # Handle the last question
+            if new_lines:
+                new_content = "\n".join(new_lines)
+                if new_content and not new_content.endswith("\n"):
+                    new_content += "\n"
+                with open(
+                    os.path.join(
+                        markdown_output_folder,
+                        folder,
+                        f"document_answer_{question_number}.md",
+                    ),
+                    "w",
+                ) as f:
+                    f.write(new_content)
+
+            # Rename the document.md file to document_answer_key.md
+            os.rename(
+                markdown_file,
+                os.path.join(markdown_output_folder, folder, "document_answer_key.md"),
+            )
+
+
 def generate_htmls(folders):
     markdown_output_folder = config["project_markdown_output_folder"]
     html_output_folder = config["project_html_output_folder"]
@@ -295,6 +401,44 @@ def generate_htmls(folders):
             html_file,
         ]
         subprocess.run(command)
+
+
+def generate_assignment_pdfs(folders):
+    markdown_output_folder = config["project_markdown_output_folder"]
+    pdf_output_folder = config["project_pdf_output_folder"]
+    source_folder = config["project_source_folder"]
+
+    for folder in folders:
+        folder_path = os.path.join(markdown_output_folder, folder)
+        for file in os.listdir(folder_path):
+            if file.endswith(".md"):
+                markdown_file = os.path.join(folder_path, file)
+                pdf_folder = os.path.join(pdf_output_folder, folder)
+                os.makedirs(pdf_folder, exist_ok=True)
+                pdf_file = os.path.join(pdf_folder, file.replace(".md", ".pdf"))
+                settings_file = os.path.join(source_folder, folder, "settings.yaml")
+
+                command = ["pandoc", markdown_file, "-o", pdf_file]
+                if os.path.exists(settings_file):
+                    command.extend(["--metadata-file", settings_file])
+                if config.get("project_pandoc_pdf_engine"):
+                    command.extend(
+                        ["--pdf-engine", config["project_pandoc_pdf_engine"]]
+                    )
+                if config.get("project_pandoc_pdf_template"):
+                    command.extend(
+                        ["--template", config["project_pandoc_pdf_template"]]
+                    )
+                if config.get("pandoc_highlight_style"):
+                    command.extend(
+                        ["--highlight-style", config["pandoc_highlight_style"]]
+                    )
+                if config.get("project_pandoc_latex_header"):
+                    command.extend(["-H", config["project_pandoc_latex_header"]])
+                command.extend(
+                    ["--resource-path", os.path.join(markdown_output_folder, folder)]
+                )
+                subprocess.run(command)
 
 
 def generate_pdfs(folders):
@@ -579,6 +723,25 @@ def publish_markdown():
         readme_file.write("\n")  # Add a blank line at the end
 
 
+def publish_assignment_pdfs():
+    pdf_output_folder = config["project_pdf_output_folder"]
+    publish_folder_pdf = config["publish_folder_pdf"]
+
+    if not publish_folder_pdf or not os.path.exists(publish_folder_pdf):
+        return  # Do nothing if path is empty or doesn't exist
+
+    for folder_name in os.listdir(pdf_output_folder):
+        source_pdf_folder = os.path.join(pdf_output_folder, folder_name)
+        if os.path.isdir(source_pdf_folder):
+            for file_name in os.listdir(source_pdf_folder):
+                if file_name.endswith(".pdf"):
+                    source_pdf_file = os.path.join(source_pdf_folder, file_name)
+                    new_file_name = file_name.replace("document", folder_name)
+                    destination_pdf_file = os.path.join(publish_folder_pdf, new_file_name)
+                    if not os.path.exists(destination_pdf_file) or not filecmp.cmp(source_pdf_file, destination_pdf_file, shallow=False):
+                        shutil.copy2(source_pdf_file, destination_pdf_file)
+
+
 def publish_pdfs():
     pdf_output_folder = config["project_pdf_output_folder"]
     publish_folder_pdf = config["publish_folder_pdf"]
@@ -720,6 +883,12 @@ def run_markdown_lint(folders):
 def main():
     parser = argparse.ArgumentParser(description="Convert Markdown to PDF and HTML.")
     parser.add_argument(
+        "-a",
+        "--assignment",
+        action="store_true",
+        help="Process documents in 'assignment mode'.",
+    )
+    parser.add_argument(
         "-c",
         "--config",
         type=str,
@@ -754,6 +923,15 @@ def main():
         "-v", "--verbose", action="store_true", help="Display verbose messages."
     )
     args = parser.parse_args()
+
+    if not (
+        sys.version_info.major == required_major
+        and sys.version_info.minor >= required_minor
+    ):
+        pretty_print_error(
+            f"This script requires Python {required_major}.{required_minor} or higher!"
+        )
+        sys.exit(1)
 
     if args.config:
         config_file_path = args.config
@@ -791,7 +969,7 @@ def main():
             "project_pandoc_css_file",
         ]:
             if not check_file_exists(value):
-                print(f"File does not exist: {value}")
+                pretty_print_error(f"File does not exist: {value}")
                 sys.exit(1)
 
     if args.project:
@@ -809,7 +987,7 @@ def main():
             "project_build_logs_folder",
         ]:
             if not check_folder_exists(value):
-                print(f"Folder does not exist: {value}")
+                pretty_print_error(f"Folder does not exist: {value}")
                 sys.exit(1)
 
     for key, value in config.items():
@@ -825,7 +1003,7 @@ def main():
             ]
         ):
             if not check_folder_exists(value):
-                print(f"Folder does not exist: {value}")
+                pretty_print_error(f"Folder does not exist: {value}")
                 sys.exit(1)
 
     folders = get_folders_list(config["project_source_folder"])
@@ -870,8 +1048,38 @@ def main():
     pretty_print("Creating link files...", args.verbose)
     create_link_files(folders)
 
+    pretty_print("Running spellchecker...", args.verbose)
+    run_spellchecker(folders)
+
+    pretty_print("Running markdown link check...", args.verbose)
+    run_markdown_link_check(folders)
+
+    pretty_print("Running markdown lint...", args.verbose)
+    run_markdown_lint(folders)
+
     pretty_print("Replacing data download links in markdown...", args.verbose)
     replace_data_download_links_in_markdown(folders)
+
+    if args.assignment:
+        pretty_print("Processing documents as assignments...", args.verbose)
+        pretty_print("Generating new markdown...", args.verbose)
+        generate_assignment_markdown(folders)
+
+        pretty_print("Generating PDFs...", args.verbose)
+        generate_assignment_pdfs(folders)
+
+        pretty_print("Publishing PDFs...", args.verbose)
+        publish_assignment_pdfs()
+
+        pretty_print("Publishing data...", args.verbose)
+        publish_data()
+
+        pretty_print("Creating timestamp files...", args.verbose)
+        create_timestamp_files(folders)
+
+        pretty_print("🎉🎉🎉   Done.", args.verbose)
+
+        sys.exit(0)
 
     pretty_print("Generating PDFs...", args.verbose)
     generate_pdfs(folders)
@@ -881,15 +1089,6 @@ def main():
 
     pretty_print("Generating HTMLs...", args.verbose)
     generate_htmls(folders)
-
-    pretty_print("Running spellchecker...", args.verbose)
-    run_spellchecker(folders)
-
-    pretty_print("Running markdown link check...", args.verbose)
-    run_markdown_link_check(folders)
-
-    pretty_print("Running markdown lint...", args.verbose)
-    run_markdown_lint(folders)
 
     pretty_print("Publishing PDFs...", args.verbose)
     publish_pdfs()
@@ -905,6 +1104,8 @@ def main():
 
     pretty_print("Creating timestamp files...", args.verbose)
     create_timestamp_files(folders)
+
+    pretty_print("🎉🎉🎉   Done.", args.verbose)
 
 
 if __name__ == "__main__":
