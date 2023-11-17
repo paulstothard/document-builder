@@ -38,7 +38,7 @@ The folders must already exist for the script to work. The script will copy the 
 
 The purpose of these folders is to allow files to be automatically copied to locations outside of the project folder, which may be a git repository.
 
-The HTML and Markdown documents copied to the publish directories are accompanied by a table of contents file with links to the individual document files. The sorting of the items in the table of contents can be controlled using the `document_order` key in the `config.json` file. The value of this key is a list of document names. The documents will be sorted in the order they appear in the list. Documents not in the list will be sorted alphabetically after the documents in the list. The pdf files copied to the publish directories are renamed after their source directories.
+The HTML and Markdown documents copied to the publish directories are accompanied by a table of contents file with links to the individual document files. The sorting of the items in the table of contents can be controlled using the `document_order` key in the `config.json` file. The value of this key is a list of document names. The documents will be sorted in the order they appear in the list. Documents not in the list will be sorted alphabetically after the documents in the list. The PDF files copied to the publish directories are renamed after their source directories.
 
 Add content to the `my_project/source` folder, replacing the example content. Each folder in `my_project/source` corresponds to a document. Rename the folders or add new folders to hold the documents to be processed.
 
@@ -60,6 +60,7 @@ As new documents are added to the `source` folder, re-run the above command to g
 
 Useful options for the above command include:
 
+* `--assignment` - parse specially formatted "assignment" Markdown documents to generate assignment and assignment key PDFs. See the `sample-project-assignments` folder for examples.
 * `--data` - generate the data files to share and exit. This option allows you to then upload the data files to a server and obtain a sharable link to the files. The link can then be added to the `my_document.txt` file in the `data_to_share_links` folder. One these links are added, re-run `document-builder.py` without the `--data` option to generate the final documents with the shareable links inserted.
 * `--force` - generate all output files even if the source files have not changed.
 * `--remove` - remove all generated files and exit. This is useful if you have removed or renamed document folders and want to remove the corresponding output files.
