@@ -1,0 +1,6 @@
+sample-project-assignments/source/assignment_1/document.md:29: MD024 Multiple headers with the same content
+sample-project-assignments/source/assignment_1/document.md:35: MD024 Multiple headers with the same content
+sample-project-assignments/source/assignment_1/document.md:41: MD024 Multiple headers with the same content
+
+Further documentation is available for these failures:
+ - MD024: https://github.com/markdownlint/markdownlint/blob/master/docs/RULES.md#md024---multiple-headers-with-the-same-content
