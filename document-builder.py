@@ -98,6 +98,7 @@ def copy_and_compress_data_folders(folders):
                 )
             pretty_print_emphasis("New compressed data file generated:")
             pretty_print_emphasis(f"{output_data_folder}.tar.gz")
+            shutil.rmtree(output_data_folder)  # Remove the folder after compression
 
 
 def copy_source_folders_to_markdown_output(folders):
@@ -196,14 +197,21 @@ def create_project(folder_path):
         os.makedirs(os.path.join(folder_path, "source", document, "data"))
         os.makedirs(os.path.join(folder_path, "source", document, "data_not_tracked"))
         os.makedirs(os.path.join(folder_path, "source", document, "includes"))
+        formatted_document = document.replace("_", " ").capitalize()
         with open(
             os.path.join(folder_path, "source", document, "document.md"), "w"
         ) as f:
-            f.write(f"# {document}\n")
+            f.write(f"# {formatted_document}\n")
+            f.write("\n")  # Add a blank line at the end
         with open(
             os.path.join(folder_path, "source", document, "settings.yaml"), "w"
         ) as f:
-            f.write(f"title: {document}\n")
+            f.write("---\n")
+            f.write(f'title: "Sample document"\n')
+            f.write("author: document-builder.py\n")
+            f.write("colorlinks: TRUE\n")
+            f.write("code-block-font-size: \\footnotesize\n")
+            f.write("...\n")
 
     pretty_print("Project created successfully.")
 
@@ -568,6 +576,7 @@ def publish_markdown():
 
     with open(os.path.join(publish_folder_markdown, "README.md"), "w") as readme_file:
         readme_file.write("\n".join(readme_contents))
+        readme_file.write("\n")  # Add a blank line at the end
 
 
 def publish_pdfs():

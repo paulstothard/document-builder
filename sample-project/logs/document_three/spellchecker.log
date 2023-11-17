@@ -1,0 +1,6 @@
+Spellchecking 1 file...
+
+sample-project/source/document_three/document.md
+  3:98-3:104  warning  `Pandoc` is misspelt  pandoc  retext-spell
+
+⚠ 1 warning

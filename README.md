@@ -11,6 +11,7 @@ The `document-builder.py` script is used to generate various documents from Mark
 
 ## Requirements
 
+* [Python 3](https://www.python.org/) version 3.8 or higher
 * [Pandoc](https://pandoc.org/)
 * [markdown-link-check](https://github.com/tcort/markdown-link-check)
 * [spellchecker](https://github.com/tbroadley/spellchecker-cli)
@@ -25,6 +26,15 @@ python document-builder.py -p my_project
 ```
 
 This will create a new folder named `my_project` containing the files and folders needed to generate the final documents.
+
+Edit the `my_project/config/config.json` file to set the locations of the final documents and the data files to be shared. For example, if you create a folder called `documents_to_share` in your home directory, you can set the following keys in the `config.json` file:
+
+* `"publish_folder_data": "~/documents_to_share"`
+* `"publish_folder_html": "~/documents_to_share"`
+* `"publish_folder_markdown": "~/documents_to_share"`
+* `"publish_folder_pdf": "~/documents_to_share"`
+
+The folders must already exist for the script to work. The script will copy the final documents to these folders.
 
 Add content to the `my_project/source` folder, replacing the example content. Each folder in `my_project/source` corresponds to a document. Rename the folders or add new folders to hold the documents to be processed.
 

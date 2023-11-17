@@ -13,8 +13,8 @@
     "project_pdf_output_folder": "pdf",
     "project_root": "",
     "project_source_folder": "source",
-    "publish_folder_data": "data_to_share",
-    "publish_folder_html": "html_to_share",
-    "publish_folder_markdown": "markdown_to_share",
-    "publish_folder_pdf": "pdfs_to_share"
+    "publish_folder_data": "",
+    "publish_folder_html": "",
+    "publish_folder_markdown": "",
+    "publish_folder_pdf": ""
 }
