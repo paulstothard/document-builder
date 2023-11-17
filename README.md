@@ -34,7 +34,7 @@ Each document folder in `my_project/source` should contain the following files a
 * `settings.yaml` - the settings for the document in YAML format. This file is used to add title, header, and footer content to the document. See example below.
 * `includes` - a folder containing any files that are to be included with or in the document. Typically this folder will contain images.
 * `data` - a folder of various files to be used/consumed in conjunction with the document (for example data files to be processed using commands in the document). These files will be used to create a `.tar.gz` file named after the folder, for example `document_one.tar.gz`. Once a sharable link to this file is obtained it can be added to the `document_one.txt` file that is automatically created in the `data_to_share_links` folder. The link in `document_one.txt` will then be inserted into the derived documents, replacing any instances of `[DATA_DOWNLOAD_LINK]`, so that readers of the final documents can download the data files.
-* `data_not_tracked` - additional data files and folders to be included in the `.tar.gz` file that won't be tracked by git. Generally this will be used for large files (e.g. larger than 50 MB).
+* `data_not_tracked` - additional data files and folders to be included in the `.tar.gz` file. Generally this will be used for large files (e.g. larger than 50 MB). The placement of these files in a separate folder allows them to be ignored in git by adding `**/data_not_tracked/` to the `.gitignore` file.
 
 To generate the final documents from the Markdown source files, run the following command:
 

@@ -1,1 +1,6 @@
-title: document_three
+---
+title: "Sample document three"
+author: [Paul Stothard]
+colorlinks: TRUE
+code-block-font-size: \footnotesize
+...
