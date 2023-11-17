@@ -160,15 +160,24 @@ def create_project(folder_path):
         "build_includes",
         "pdf",
         "source",
-    ]  # replace with your actual subfolders
+    ]
     for subfolder in subfolders:
         os.makedirs(os.path.join(folder_path, subfolder))
 
     config_file_path = os.path.join(os.path.dirname(__file__), "config", "config.json")
     if os.path.exists(config_file_path):
         shutil.copy2(config_file_path, os.path.join(folder_path, "config"))
-    elif args.config:
-        shutil.copy2(args.config, os.path.join(folder_path, "config"))
+    else:
+        pretty_print_error("Config file cannot be copied.")
+
+    with open(os.path.join(folder_path, "config", "config.json"), "r+") as f:
+        content = f.read()
+        content = re.sub(
+            r'"project_root": ".*"', f'"project_root": "{folder_path}"', content
+        )
+        f.seek(0)
+        f.write(content)
+        f.truncate()
 
     for key, value in config.items():
         if isinstance(value, str) and key in [
@@ -700,7 +709,7 @@ def run_markdown_lint(folders):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Process some files.")
+    parser = argparse.ArgumentParser(description="Convert Markdown to PDF and HTML.")
     parser.add_argument(
         "-c",
         "--config",
@@ -764,6 +773,20 @@ def main():
 
     for key, value in config.items():
         if isinstance(value, str) and key in [
+            "project_pandoc_pdf_template",
+            "project_pandoc_latex_header",
+            "project_pandoc_css_file",
+        ]:
+            if not check_file_exists(value):
+                print(f"File does not exist: {value}")
+                sys.exit(1)
+
+    if args.project:
+        create_project(args.project)
+        sys.exit(0)
+
+    for key, value in config.items():
+        if isinstance(value, str) and key in [
             "project_source_folder",
             "project_data_to_share_links_folder",
             "project_markdown_output_folder",
@@ -791,20 +814,6 @@ def main():
             if not check_folder_exists(value):
                 print(f"Folder does not exist: {value}")
                 sys.exit(1)
-
-    for key, value in config.items():
-        if isinstance(value, str) and key in [
-            "project_pandoc_pdf_template",
-            "project_pandoc_latex_header",
-            "project_pandoc_css_file",
-        ]:
-            if not check_file_exists(value):
-                print(f"File does not exist: {value}")
-                sys.exit(1)
-
-    if args.project:
-        create_project(args.project)
-        sys.exit(0)
 
     folders = get_folders_list(config["project_source_folder"])
 
