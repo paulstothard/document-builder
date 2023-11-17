@@ -165,7 +165,7 @@ def create_project(folder_path):
     for subfolder in subfolders:
         os.makedirs(os.path.join(folder_path, subfolder))
 
-    config_file_path = os.path.join(os.path.dirname(__file__), "config", "config.json")
+    config_file_path = os.path.join(config["project_root"], "config", "config.json")
     if os.path.exists(config_file_path):
         shutil.copy2(config_file_path, os.path.join(folder_path, "config"))
     else:
@@ -759,10 +759,14 @@ def main():
         config_file_path = args.config
     else:
         config_file_path = os.path.join(
-            os.path.dirname(__file__), "config", "config.json"
+            os.path.dirname(os.path.realpath(__file__)), "config", "config.json"
         )
 
     load_config(config_file_path)
+
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+    if not config.get("project_root"):
+        config["project_root"] = base_dir
 
     for key, value in config.items():
         if isinstance(value, str) and key not in [
