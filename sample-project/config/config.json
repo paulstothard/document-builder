@@ -11,7 +11,7 @@
     "project_pandoc_latex_header": "build_includes/head.tex",
     "project_pandoc_pdf_template": "build_includes/eisvogel.tex",
     "project_pdf_output_folder": "pdf",
-    "project_root": "",
+    "project_root": "sample-project",
     "project_source_folder": "source",
     "publish_folder_data": "data_to_share",
     "publish_folder_html": "html_to_share",
