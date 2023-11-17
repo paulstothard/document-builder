@@ -1,3 +1,3 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-python3 document-builder.py -c sample-project/config/config.json -v
+python document-builder.py -c sample-project/config/config.json -v
