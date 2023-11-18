@@ -155,16 +155,16 @@ def create_project(folder_path):
     os.makedirs(folder_path)
 
     subfolders = [
-        "build_includes",
         "config",
+        "logs",
         "data",
         "data_links",
         "final_documents",
         "html",
-        "logs",
         "markdown",
+        "build_includes",
         "pdf",
-        "source"
+        "source",
     ]
     for subfolder in subfolders:
         os.makedirs(os.path.join(folder_path, subfolder))
@@ -176,14 +176,19 @@ def create_project(folder_path):
         pretty_print_error("Config file cannot be copied.")
 
     with open(os.path.join(folder_path, "config", "config.json"), "r+") as f:
-        config = json.load(f)
-        config["project_root"] = folder_path
-        keys_to_update = ["publish_folder_data", "publish_folder_html", "publish_folder_markdown", "publish_folder_pdf"]
+        config_data = json.load(f)
+        keys_to_update = [
+            "project_root",
+            "publish_folder_data",
+            "publish_folder_html",
+            "publish_folder_markdown",
+            "publish_folder_pdf",
+        ]
         for key in keys_to_update:
-            if key in config:
-                config[key] = os.path.join(folder_path, config[key])
+            if key in config_data:
+                config_data[key] = os.path.join(folder_path, config_data[key])
         f.seek(0)
-        json.dump(config, f, indent=4)
+        json.dump(config_data, f, indent=4)
         f.truncate()
 
     for key, value in config.items():
@@ -214,7 +219,7 @@ def create_project(folder_path):
         ) as f:
             f.write("---\n")
             f.write(f'title: "Sample document"\n')
-            f.write("author: document-builder.py\n")
+            f.write("author: [Your name here]\n")
             f.write("colorlinks: TRUE\n")
             f.write("code-block-font-size: \\footnotesize\n")
             f.write("...\n")
@@ -305,7 +310,7 @@ def generate_assignment_markdown(folders):
             new_content = "\n".join(new_lines)
 
         with open(
-            os.path.join(markdown_output_folder, folder, "document.md"),
+            os.path.join(markdown_output_folder, folder, "document_to_share.md"),
             "w",
         ) as f:
             f.write(new_content)
@@ -360,6 +365,12 @@ def generate_assignment_markdown(folders):
             os.rename(
                 markdown_file,
                 os.path.join(markdown_output_folder, folder, "document_instructor.md"),
+            )
+
+            # Rename the document_to_share.md file to document.md
+            os.rename(
+                os.path.join(markdown_output_folder, folder, "document_to_share.md"),
+                markdown_file,
             )
 
 
@@ -821,13 +832,13 @@ def replace_data_download_links_in_markdown(folders):
         markdown_file = os.path.join(markdown_output_folder, folder, "document.md")
         with open(markdown_file, "r+") as f:
             content = f.read()
-            if "[DATA_DOWNLOAD_LINK]" in content:
-                link_file_path = os.path.join(
-                    data_to_share_links_folder, f"{folder}.txt"
-                )
-                if os.path.exists(link_file_path):
-                    with open(link_file_path, "r") as link_file:
-                        link = link_file.read().strip()
+            link_file_path = os.path.join(data_to_share_links_folder, f"{folder}.txt")
+            if os.path.exists(link_file_path):
+                with open(link_file_path, "r") as link_file:
+                    link = link_file.read().strip()
+                if "([DATA_DOWNLOAD_LINK])" in content:
+                    content = content.replace("([DATA_DOWNLOAD_LINK])", f"({link})")
+                elif "[DATA_DOWNLOAD_LINK]" in content:
                     # Split the link into chunks of 50 characters
                     link_parts = [link[i : i + 50] for i in range(0, len(link), 50)]
                     # Add a backslash at the end of each line, except for the last line
@@ -840,9 +851,9 @@ def replace_data_download_links_in_markdown(folders):
                     # Add double quotes at the start and end of the link
                     link = f'"{link}"'
                     content = content.replace("[DATA_DOWNLOAD_LINK]", link)
-                    f.seek(0)
-                    f.write(content)
-                    f.truncate()
+                f.seek(0)
+                f.write(content)
+                f.truncate()
 
 
 def run_spellchecker(folders):

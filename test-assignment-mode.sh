@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-python document-builder.py -c sample-project-assignments/config/config.json -a -v
+python document-builder.py -c sample-project-assignment/config/config.json -a -v

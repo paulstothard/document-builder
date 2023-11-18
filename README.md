@@ -122,7 +122,7 @@ The `sample-project` folder contains an example project with three sample docume
 
 ## Assignment mode
 
-Assignment mode (using the `--assignment` option) is used to generate assignment and assignment key PDFs from specially formatted Markdown documents. The `sample-project-assignments` folder contains an example "assignment" project with three sample assignment documents. The final documents generated from the sample project are available in the `sample-project-assignments/final_documents` folder. For assignment projects several PDFs are generated for each input document: a student version of the assignment, an instructor version of the assignment (i.e. with answers), and feedback files (PDFs that provide the answer for a single question).
+Assignment mode (using the `--assignment` option) is used to generate assignment and assignment key PDFs from specially formatted Markdown documents. The `sample-project-assignment` folder contains an example "assignment" project with three sample assignment documents. The final documents generated from the sample project are available in the `sample-project-assignment/final_documents` folder. For assignment projects several PDFs are generated for each input document: a student version of the assignment, an instructor version of the assignment (i.e. with answers), and feedback files (PDFs that provide the answer for a single question).
 
 To make use of this mode, use the following simple structure for the Markdown documents:
 
@@ -162,7 +162,7 @@ The data sharing functionality works with assignment mode. Any instances of `[DA
 
 There are several options that can be passed to `document-builder.py`:
 
-* `--assignment` - parse specially formatted "assignment" Markdown documents to generate assignment and assignment key PDFs. See the `sample-project-assignments` folder for examples.
+* `--assignment` - parse specially formatted "assignment" Markdown documents to generate assignment and assignment key PDFs. See the `sample-project-assignment` folder for examples.
 * `--data` - generate the `.tar.gz` files to share and exit without regenerating the final documents.
 * `--force` - regenerate all output files even if they already exist and the source files have not changed.
 * `--remove` - remove all generated files from the project intermediate folders and exit. This is useful if you have removed or renamed document folders and want to remove the corresponding output files. This option will not remove files from the final output folder(s).
