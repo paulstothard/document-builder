@@ -155,15 +155,16 @@ def create_project(folder_path):
     os.makedirs(folder_path)
 
     subfolders = [
-        "config",
-        "logs",
-        "data_to_share",
-        "data_to_share_links",
-        "html",
-        "markdown",
         "build_includes",
+        "config",
+        "data",
+        "data_links",
+        "final_documents",
+        "html",
+        "logs",
+        "markdown",
         "pdf",
-        "source",
+        "source"
     ]
     for subfolder in subfolders:
         os.makedirs(os.path.join(folder_path, subfolder))
@@ -175,12 +176,14 @@ def create_project(folder_path):
         pretty_print_error("Config file cannot be copied.")
 
     with open(os.path.join(folder_path, "config", "config.json"), "r+") as f:
-        content = f.read()
-        content = re.sub(
-            r'"project_root": ".*"', f'"project_root": "{folder_path}"', content
-        )
+        config = json.load(f)
+        config["project_root"] = folder_path
+        keys_to_update = ["publish_folder_data", "publish_folder_html", "publish_folder_markdown", "publish_folder_pdf"]
+        for key in keys_to_update:
+            if key in config:
+                config[key] = os.path.join(folder_path, config[key])
         f.seek(0)
-        f.write(content)
+        json.dump(config, f, indent=4)
         f.truncate()
 
     for key, value in config.items():
@@ -302,7 +305,7 @@ def generate_assignment_markdown(folders):
             new_content = "\n".join(new_lines)
 
         with open(
-            os.path.join(markdown_output_folder, folder, "document_to_share.md"),
+            os.path.join(markdown_output_folder, folder, "document.md"),
             "w",
         ) as f:
             f.write(new_content)
@@ -326,7 +329,7 @@ def generate_assignment_markdown(folders):
                             os.path.join(
                                 markdown_output_folder,
                                 folder,
-                                f"document_answer_{question_number}.md",
+                                f"document_feedback_{question_number}.md",
                             ),
                             "w",
                         ) as f:
@@ -347,16 +350,16 @@ def generate_assignment_markdown(folders):
                     os.path.join(
                         markdown_output_folder,
                         folder,
-                        f"document_answer_{question_number}.md",
+                        f"document_feedback_{question_number}.md",
                     ),
                     "w",
                 ) as f:
                     f.write(new_content)
 
-            # Rename the document.md file to document_answer_key.md
+            # Rename the document.md file to document_instructor.md
             os.rename(
                 markdown_file,
-                os.path.join(markdown_output_folder, folder, "document_answer_key.md"),
+                os.path.join(markdown_output_folder, folder, "document_instructor.md"),
             )
 
 
@@ -595,6 +598,13 @@ def publish_data():
     if not publish_folder_data or not os.path.exists(publish_folder_data):
         return  # Do nothing if path is empty or doesn't exist
 
+    publish_folder_data = os.path.join(
+        publish_folder_data, "data"
+    )  # Add "data" to the path
+    os.makedirs(
+        publish_folder_data, exist_ok=True
+    )  # Create the directory if it doesn't exist
+
     for file_name in os.listdir(data_output_folder):
         if file_name.endswith((".zip", ".gz")):
             source_data_file = os.path.join(data_output_folder, file_name)
@@ -730,6 +740,13 @@ def publish_assignment_pdfs():
     if not publish_folder_pdf or not os.path.exists(publish_folder_pdf):
         return  # Do nothing if path is empty or doesn't exist
 
+    publish_folder_pdf = os.path.join(
+        publish_folder_pdf, "pdf"
+    )  # Add "pdf" to the path
+    os.makedirs(
+        publish_folder_pdf, exist_ok=True
+    )  # Create the directory if it doesn't exist
+
     for folder_name in os.listdir(pdf_output_folder):
         source_pdf_folder = os.path.join(pdf_output_folder, folder_name)
         if os.path.isdir(source_pdf_folder):
@@ -737,8 +754,12 @@ def publish_assignment_pdfs():
                 if file_name.endswith(".pdf"):
                     source_pdf_file = os.path.join(source_pdf_folder, file_name)
                     new_file_name = file_name.replace("document", folder_name)
-                    destination_pdf_file = os.path.join(publish_folder_pdf, new_file_name)
-                    if not os.path.exists(destination_pdf_file) or not filecmp.cmp(source_pdf_file, destination_pdf_file, shallow=False):
+                    destination_pdf_file = os.path.join(
+                        publish_folder_pdf, new_file_name
+                    )
+                    if not os.path.exists(destination_pdf_file) or not filecmp.cmp(
+                        source_pdf_file, destination_pdf_file, shallow=False
+                    ):
                         shutil.copy2(source_pdf_file, destination_pdf_file)
 
 
@@ -748,6 +769,13 @@ def publish_pdfs():
 
     if not publish_folder_pdf or not os.path.exists(publish_folder_pdf):
         return  # Do nothing if path is empty or doesn't exist
+
+    publish_folder_pdf = os.path.join(
+        publish_folder_pdf, "pdf"
+    )  # Add "pdf" to the path
+    os.makedirs(
+        publish_folder_pdf, exist_ok=True
+    )  # Create the directory if it doesn't exist
 
     for folder_name in os.listdir(pdf_output_folder):
         source_pdf_folder = os.path.join(pdf_output_folder, folder_name)
