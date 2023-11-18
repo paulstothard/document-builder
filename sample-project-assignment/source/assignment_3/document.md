@@ -36,7 +36,7 @@ Answer info
 
 A question with an image:
 
-![An image](includes/R1_quality.png)
+![An image](includes/1.png)
 
 ### Answer
 
@@ -50,4 +50,4 @@ Can have text in texinfo blocks
 echo "Or code in bash blocks"
 ```
 
-![An image](includes/R2_quality.png)
+![An image](includes/2.png)
