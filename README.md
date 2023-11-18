@@ -1,13 +1,6 @@
 # document-builder
 
-The `document-builder.py` script is used to generate various documents from Markdown source files. The script uses [Pandoc](https://pandoc.org/) to convert the Markdown files to HTML and PDF files. The script also performs several other tasks, including:
-
-* Checking the Markdown files for broken links.
-* Checking the Markdown files for spelling errors.
-* Checking the Markdown files for formatting errors.
-* Generating a `.tar.gz` file containing data files to be shared with readers of the final documents.
-* Generating a `.txt` file containing a sharable link to the `.tar.gz` file.
-* Inserting the sharable link into the final documents.
+The `document-builder.py` script produces nicely formatted PDF and HTML documents from Markdown source files. It also performs various checks on the source files and facilitates the sharing of data files associated with the documents. It has an "assignment mode" that allows specially formatted Markdown documents to be parsed to generate assignment and assignment key PDFs.
 
 ## Requirements
 
@@ -19,49 +12,158 @@ The `document-builder.py` script is used to generate various documents from Mark
 
 ## Usage
 
-Create a new project using the `-p` option:
+Create a new empty project using the `-p` option:
 
 ```bash
 python document-builder.py -p my_project
 ```
 
-This will create a new folder named `my_project` containing the files and folders needed to generate the final documents.
+This will create a new folder named `my_project` containing project subfolders, a configuration file, and example content (folders and files in the `source` folder):
 
-Edit the `my_project/config/config.json` file to set the locations of the final documents and the data files to be shared. For example, if you create a folder called `documents_to_share` in your home directory, you can set the following keys in the `config.json` file:
+```text
+my_project/
+├── build_includes
+├── config
+├── data
+├── data_links
+├── final_documents
+├── html
+├── logs
+├── markdown
+├── pdf
+└── source
+```
 
-* `"publish_folder_data": "~/documents_to_share"`
-* `"publish_folder_html": "~/documents_to_share"`
-* `"publish_folder_markdown": "~/documents_to_share"`
-* `"publish_folder_pdf": "~/documents_to_share"`
+Simply edit the `source` folder to add content. Initially it contains input data for three sample documents:
 
-The folders must already exist for the script to work. The script will copy the final documents to these folders.
+```text
+└── source
+    ├── document_one
+    │   ├── data
+    │   ├── data_not_tracked
+    │   ├── document.md
+    │   ├── includes
+    │   └── settings.yaml
+    ├── document_three
+    │   ├── data
+    │   ├── data_not_tracked
+    │   ├── document.md
+    │   ├── includes
+    │   └── settings.yaml
+    └── document_two
+        ├── data
+        ├── data_not_tracked
+        ├── document.md
+        ├── includes
+        └── settings.yaml
+```
 
-The purpose of these folders is to allow files to be automatically copied to locations outside of the project folder, which may be a git repository.
+Rename the document folders or add new folders to hold the documents to be processed. Each document folder must contain the following files and folders, with the names as shown:
 
-The HTML and Markdown documents copied to the publish directories are accompanied by a table of contents file with links to the individual document files. The sorting of the items in the table of contents can be controlled using the `document_order` key in the `config.json` file. The value of this key is a list of document names. The documents will be sorted in the order they appear in the list. Documents not in the list will be sorted alphabetically after the documents in the list. The PDF files copied to the publish directories are renamed after their source directories.
-
-Add content to the `my_project/source` folder, replacing the example content. Each folder in `my_project/source` corresponds to a document. Rename the folders or add new folders to hold the documents to be processed.
-
-Each document folder in `my_project/source` should contain the following files and folders:
-
-* `document.md` - the document in Markdown format.
-* `settings.yaml` - the settings for the document in YAML format. This file is used to add title, header, and footer content to the document. See examples in the `sample-project` folder.
+* `data` - a folder of various files to be used/consumed in conjunction with the document (for example data files to be processed using commands in the document).
+* `data_not_tracked` - a folder of additional data files. Generally this will be used for large files (e.g. larger than 50 MB). The placement of these files in a separate folder allows them to be ignored in git by adding `**/data_not_tracked/` to the `.gitignore` file.
+* `document.md` - the main document in Markdown format.
 * `includes` - a folder containing any files that are to be included with or in the document. Typically this folder will contain images.
-* `data` - a folder of various files to be used/consumed in conjunction with the document (for example data files to be processed using commands in the document). These files will be used to create a `.tar.gz` file named after the folder, for example `document_one.tar.gz`. Once a sharable link to this file is obtained it can be added to the `document_one.txt` file that is automatically created in the `data_to_share_links` folder. The link in `document_one.txt` will then be inserted into the derived documents, replacing any instances of `[DATA_DOWNLOAD_LINK]`, so that readers of the final documents can download the data files.
-* `data_not_tracked` - additional data files and folders to be included in the `.tar.gz` file. Generally this will be used for large files (e.g. larger than 50 MB). The placement of these files in a separate folder allows them to be ignored in git by adding `**/data_not_tracked/` to the `.gitignore` file.
+* `settings.yaml` - the settings for the document in YAML format. This file is used to add title, header, and footer content to the document.
 
-To generate the final documents from the Markdown source files, run the following command:
+With your content in place, run the following command to generate the final documents from the Markdown source files:
 
 ```bash
 python document-builder.py -c my_project/config/config.json
 ```
 
-As new documents are added to the `source` folder, re-run the above command to generate the final documents.
+The final content will be written to the `my_project/final_documents` folder, into various subfolders:
 
-Useful options for the above command include:
+* `data` - `.tar.gz` files, one for each document for which content was provided in the `data` or `data_not_tracked` folders.
+* `html` - An HTML table of contents file (`index.html`) with links to each HTML document (provided in separate subfolders).
+* `markdown` - A Markdown table of contents file (`README.md`) with links to each Markdown document (provided in separate subfolders).
+* `pdf` - PDF documents, one per source document.
+
+You may want the final documents to be written to a folder outside of the project folder (to a Dropbox folder for example). You can edit the `config.json` file to set the locations of the final documents and the data files to be shared. For example, to have the final documents written to folders within the project folder itself, you could set the following keys in the `config.json` file:
+
+* `"publish_folder_data": "~/Library/CloudStorage/Dropbox/to_share/data"`
+* `"publish_folder_html": "~/Library/CloudStorage/Dropbox/to_share/html"`
+* `"publish_folder_markdown": "~/Library/CloudStorage/Dropbox/to_share/markdown"`
+* `"publish_folder_pdf": "~/Library/CloudStorage/Dropbox/to_share/markdown"`
+
+Next, create the folders that will hold the final documents (if they don't already exist):
+
+```bash
+mkdir -p ~/Library/CloudStorage/Dropbox/to_share/{data,html,markdown,pdf}
+```
+
+Re-run the `document-builder.py` command to generate the final documents in their new locations:
+
+```bash
+python document-builder.py -c my_project/config/config.json
+```
+
+As needed, add new documents to the project, or edit existing documents. You can also change the data provided in the `data` and `data_not_tracked` folders. Re-run the `document-builder.py` command to generate the final documents with the updated content:
+
+```bash
+python document-builder.py -c my_project/config/config.json
+```
+
+Only the new or changed documents will be processed. The final documents will be written to the same locations as before, overwriting the previous versions.
+
+## Sharing data files
+
+If you place a `.tar.gz` file generated by `document-builder.py` in a folder that is synced to a cloud storage service (e.g. Dropbox), you can create a sharable link to the file (e.g. by right-clicking on the file in the Dropbox folder and selecting "Copy Dropbox link"). You can then add the link to the corresponding `.txt` file in the `data_to_share_links` folder. The next time you re-run `document-builder.py`, the link for accessing the `.tar.gz` file will be inserted into the appropriate document, in place of any instances of `[DATA_DOWNLOAD_LINK]` in the document.
+
+Should you need to update the data provided with the document, you can modify the content in the `data` or `data_not_tracked` folders, and then re-run `document-builder.py` with the `--data` option. This will generate new `.tar.gz` files again for the data folders that have been updated. You can then get the new sharable links for the updated `.tar.gz` files and add them to the corresponding `.txt` files in the `data_to_share_links` folder. Re-run `document-builder.py` without the `--data` option to generate the final documents with the updated links inserted.
+
+## Log files
+
+The `document-builder.py` script generates log files in the `logs` folder, in a separate subfolder for each source document. The log files contain the results of spell checking, link checking, and Markdown linting. A timestamp file is included in each log folder to indicate when the document was last processed.
+
+## Example output
+
+The `sample-project` folder contains an example project with three sample documents. The final documents generated from the sample project are available in the `sample-project/final_documents` folder.
+
+## Assignment mode
+
+Assignment mode (using the `--assignment` option) is used to generate assignment and assignment key PDFs from specially formatted Markdown documents. The `sample-project-assignments` folder contains an example "assignment" project with three sample assignment documents. The final documents generated from the sample project are available in the `sample-project-assignments/final_documents` folder. For assignment projects several PDFs are generated for each input document: a student version of the assignment, an instructor version of the assignment (i.e. with answers), and feedback files (PDFs that provide the answer for a single question).
+
+To make use of this mode, use the following simple structure for the Markdown documents:
+
+```md
+# Assignment 1
+
+Content goes here, e.g. a description of the assignment.
+
+## Question 1
+
+### 1 mark
+
+Question content goes here, i.e. a question.
+
+### Answer
+
+Answer key content goes here, i.e. the answer to the question.
+
+## Question 2
+
+### 2 marks
+
+Question content goes here, i.e. a question.
+
+### Answer
+
+Answer key content goes here, i.e. the answer to the question.
+```
+
+Within each content section you can have standard Markdown content, for example code blocks and images.
+
+The `# Assignment`, `## Question`, and `### Answer` headings are required for parsing. The "mark" headings are used to add the total marks to the output documents, beneath the "Assignment" heading. Failure to include the proper headings will lead to missing or incorrect output files.
+
+The data sharing functionality works with assignment mode. Any instances of `[DATA_DOWNLOAD_LINK]` in the Markdown documents will be replaced with the sharable links for the `.tar.gz` files in the `data_to_share_links` folder.
+
+## document-builder.py options
+
+There are several options that can be passed to `document-builder.py`:
 
 * `--assignment` - parse specially formatted "assignment" Markdown documents to generate assignment and assignment key PDFs. See the `sample-project-assignments` folder for examples.
-* `--data` - generate the data files to share and exit. This option allows you to then upload the data files to a server and obtain a sharable link to the files. The link can then be added to the `my_document.txt` file in the `data_to_share_links` folder. One these links are added, re-run `document-builder.py` without the `--data` option to generate the final documents with the shareable links inserted.
-* `--force` - generate all output files even if the source files have not changed.
-* `--remove` - remove all generated files and exit. This is useful if you have removed or renamed document folders and want to remove the corresponding output files.
-* `--verbose` - print verbose output. This is useful for monitoring the progress of the script.
+* `--data` - generate the `.tar.gz` files to share and exit without regenerating the final documents.
+* `--force` - regenerate all output files even if they already exist and the source files have not changed.
+* `--remove` - remove all generated files from the project intermediate folders and exit. This is useful if you have removed or renamed document folders and want to remove the corresponding output files. This option will not remove files from the final output folder(s).
+* `--verbose` - print verbose output.
