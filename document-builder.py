@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+"""
+Convert Markdown to PDF and HTML.
+
+Usage: 
+    python document-builder.py [-a] [-c CONFIG] [-d] [-f] [-p PROJECT] [-r] [-v]
+
+Author: 
+    Paul Stothard
+"""
 
 import argparse
 import filecmp
