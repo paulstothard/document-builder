@@ -1,6 +1,0 @@
-sample-project/source/document_two/document.md:3: MD013 Line length
-sample-project/source/document_two/document.md:11: MD047 File should end with a single newline character
-
-Further documentation is available for these failures:
- - MD013: https://github.com/markdownlint/markdownlint/blob/master/docs/RULES.md#md013---line-length
- - MD047: https://github.com/markdownlint/markdownlint/blob/master/docs/RULES.md#md047---file-should-end-with-a-single-newline-character
