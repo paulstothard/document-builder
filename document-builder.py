@@ -108,8 +108,7 @@ def copy_and_compress_data_folders(folders):
                 tar.add(
                     output_data_folder, arcname=os.path.basename(output_data_folder)
                 )
-            pretty_print_emphasis("New compressed data file generated:")
-            pretty_print_emphasis(f"{output_data_folder}.tar.gz")
+
             shutil.rmtree(output_data_folder)  # Remove the folder after compression
 
 
@@ -283,37 +282,49 @@ def generate_assignment_markdown(folders):
         # determine total marks
         with open(markdown_file, "r") as f:
             content = f.read()
-            matches = re.findall(r"### (\d+) marks?", content)
-            total_marks = sum([int(match) for match in matches])
+            in_code_block = False
+            total_marks = 0
+            for line in content.splitlines():
+                if line.strip().startswith("```"):
+                    in_code_block = not in_code_block
+                elif not in_code_block:
+                    match = re.match(r"^#+ (\d+) marks?", line, re.IGNORECASE)
+                    if match:
+                        total_marks += int(match.group(1))
 
         # insert total marks into document.md
         with open(markdown_file, "r+") as f:
             lines = f.readlines()
             f.seek(0)
             f.truncate()
-            i = 0
+            in_code_block = False
             marks_added = False
-            while i < len(lines):
-                if lines[i].startswith("#") and not marks_added:
-                    f.write(lines[i])
-                    f.write(f"\n{total_marks} marks total\n")
+            for line in lines:
+                if line.strip().startswith("```"):
+                    in_code_block = not in_code_block
+                if not in_code_block and line.startswith("#") and not marks_added:
+                    f.write(f"{line.rstrip()} ({total_marks} marks total)\n")
                     marks_added = True
                 else:
-                    f.write(lines[i])
-                i += 1
+                    f.write(line)
 
         # create copy of document with answers removed
         with open(markdown_file, "r") as f:
             content = f.read()
             lines = content.splitlines()
             new_lines = []
+            in_code_block = False
+            in_answer_block = False
             i = 0
             while i < len(lines):
-                if lines[i].startswith("### Answer"):
-                    i += 1
-                    while i < len(lines) and not lines[i].startswith("## Question"):
-                        i += 1
-                if i < len(lines):
+                if lines[i].strip().startswith("```"):
+                    in_code_block = not in_code_block
+                if not in_code_block:
+                    if re.match(r"^#+ answer", lines[i], re.IGNORECASE):
+                        in_answer_block = True
+                    elif re.match(r"^#+ question", lines[i], re.IGNORECASE):
+                        in_answer_block = False
+                if not in_answer_block and i < len(lines):
                     new_lines.append(lines[i])
                 i += 1
             new_content = "\n".join(new_lines)
@@ -330,29 +341,32 @@ def generate_assignment_markdown(folders):
             lines = content.splitlines()
             new_lines = []
             question_number = None
+            in_code_block = False
             i = 0
             while i < len(lines):
-                match = re.match(r"^## Question (\d+)", lines[i])
-                if match or i == len(lines):
-                    if question_number is not None:
-                        # Check if the last line is empty before adding a newline character
-                        new_content = "\n".join(new_lines)
-                        if new_content and not new_content.endswith("\n"):
-                            new_content += "\n"
-                        with open(
-                            os.path.join(
-                                markdown_output_folder,
-                                folder,
-                                f"document_feedback_{question_number}.md",
-                            ),
-                            "w",
-                        ) as f:
-                            f.write(new_content)
-                        new_lines = []
-                    if match:
-                        question_number = match.group(1)
-                        new_lines.append(lines[i])
-                elif question_number is not None:
+                if lines[i].strip().startswith("```"):
+                    in_code_block = not in_code_block
+                if not in_code_block:
+                    match = re.match(r"^#+ Question (\d+)", lines[i], re.IGNORECASE)
+                    if match or i == len(lines):
+                        if question_number is not None:
+                            # Check if the last line is empty before adding a newline character
+                            new_content = "\n".join(new_lines)
+                            if new_content and not new_content.endswith("\n"):
+                                new_content += "\n"
+                            with open(
+                                os.path.join(
+                                    markdown_output_folder,
+                                    folder,
+                                    f"document_feedback_{question_number}.md",
+                                ),
+                                "w",
+                            ) as f:
+                                f.write(new_content)
+                            new_lines = []
+                        if match:
+                            question_number = match.group(1)
+                if question_number is not None:
                     new_lines.append(lines[i])
                 i += 1
             # Handle the last question
@@ -602,7 +616,7 @@ def prompt_yes_no(message, default=None):
     if default is not None:
         valid_responses[""] = default
 
-    prompt = f"\033[94m{message} (yes/no{default_str}):\033[0m "
+    prompt = f"\033[95m{message} (yes/no{default_str}):\033[0m " # Purple text
     while True:
         response = input(prompt).lower()
         if response in valid_responses:
@@ -614,6 +628,7 @@ def prompt_yes_no(message, default=None):
 def publish_data():
     data_output_folder = config["project_data_output_folder"]
     publish_folder_data = config["publish_folder_data"]
+    data_to_share_links_folder = config["project_data_to_share_links_folder"]
 
     if not publish_folder_data or not os.path.exists(publish_folder_data):
         return  # Do nothing if path is empty or doesn't exist
@@ -633,6 +648,10 @@ def publish_data():
                 source_data_file, destination_data_file, shallow=False
             ):
                 shutil.copy2(source_data_file, destination_data_file)
+                file_name_without_extension = os.path.splitext(file_name)[0]
+                new_file_name = f"{file_name_without_extension}.txt"
+                new_file_path = os.path.join(data_to_share_links_folder, new_file_name)
+                print(f"\033[95mNew data file generated, add sharable link to\033[94m {new_file_path}\033[0m")
 
 
 def publish_htmls():
@@ -928,6 +947,52 @@ def run_markdown_lint(folders):
                 )
 
 
+def validate_assignment_markdown(folders):
+    markdown_output_folder = config["project_markdown_output_folder"]
+    for folder in folders:
+        markdown_file = os.path.join(markdown_output_folder, folder, "document.md")
+        with open(markdown_file, "r") as f:
+            lines = f.readlines()
+
+            in_code_block = False
+            headings = []
+            for line in lines:
+                stripped_line = line.strip().lower()
+                if stripped_line.startswith("```"):
+                    in_code_block = not in_code_block
+                elif not in_code_block and stripped_line.startswith("#"):
+                    headings.append(stripped_line)
+
+            assignment_pattern = re.compile(r"^# ", re.IGNORECASE)
+            question_pattern = re.compile(r"^#+ Question (\d+)$", re.IGNORECASE)
+            marks_pattern = re.compile(r"^#+ \d+ marks?", re.IGNORECASE)
+            answer_pattern = re.compile(r"^#+ Answer", re.IGNORECASE)
+
+            if not headings or not assignment_pattern.match(headings[0]):
+                return False
+
+            seen_question = False
+            seen_marks = False
+            last_question_number = 0
+
+            for heading in headings[1:]:
+                question_match = question_pattern.match(heading)
+                if question_match:
+                    question_number = int(question_match.group(1))
+                    if seen_question or question_number != last_question_number + 1:
+                        pretty_print_error(
+                            f"Incorrect question numbering in {markdown_file}"
+                        )
+                        return False
+                    seen_question = True
+                    last_question_number = question_number
+                elif marks_pattern.match(heading) and seen_question:
+                    seen_marks = True
+                elif answer_pattern.match(heading) and seen_question and seen_marks:
+                    seen_question = False
+                    seen_marks = False
+
+
 def main():
     parser = argparse.ArgumentParser(description="Convert Markdown to PDF and HTML.")
     parser.add_argument(
@@ -1087,10 +1152,10 @@ def main():
         pretty_print("Data files generated.", args.verbose)
         sys.exit(0)
 
-    pretty_print("Copying source folders to markdown output...", args.verbose)
+    pretty_print("Copying source folders to Markdown output...", args.verbose)
     copy_source_folders_to_markdown_output(folders)
 
-    pretty_print("Editing markdown includes...", args.verbose)
+    pretty_print("Editing Markdown includes...", args.verbose)
     edit_markdown_includes(folders)
 
     pretty_print("Creating link files...", args.verbose)
@@ -1099,18 +1164,24 @@ def main():
     pretty_print("Running spellchecker...", args.verbose)
     run_spellchecker(folders)
 
-    pretty_print("Running markdown link check...", args.verbose)
+    pretty_print("Running Markdown link check...", args.verbose)
     run_markdown_link_check(folders)
 
-    pretty_print("Running markdown lint...", args.verbose)
+    pretty_print("Running Markdown lint...", args.verbose)
     run_markdown_lint(folders)
 
-    pretty_print("Replacing data download links in markdown...", args.verbose)
+    pretty_print(
+        "Replacing [DATA_DOWNLOAD_LINK] with data links in Markdown...", args.verbose
+    )
     replace_data_download_links_in_markdown(folders)
 
     if args.assignment:
         pretty_print("Processing documents as assignments...", args.verbose)
-        pretty_print("Generating new markdown...", args.verbose)
+
+        pretty_print("Validating assignment Markdown...", args.verbose)
+        validate_assignment_markdown(folders)
+
+        pretty_print("Generating new Markdown...", args.verbose)
         generate_assignment_markdown(folders)
 
         pretty_print("Generating PDFs...", args.verbose)
@@ -1141,7 +1212,7 @@ def main():
     pretty_print("Publishing PDFs...", args.verbose)
     publish_pdfs()
 
-    pretty_print("Publishing markdown...", args.verbose)
+    pretty_print("Publishing Markdown...", args.verbose)
     publish_markdown()
 
     pretty_print("Publishing HTMLs...", args.verbose)

@@ -30,6 +30,20 @@ Can have text in texinfo blocks
 echo "Or code in bash blocks"
 ```
 
+Code block with headings to test the parser:
+
+```md
+## Question 2
+
+### 100 marks
+
+This should stay in code block and not be parsed as question.
+
+### Answer
+
+This should stay in code block and not be parsed as answer.
+```
+
 ## Question 2
 
 ### 2 marks
