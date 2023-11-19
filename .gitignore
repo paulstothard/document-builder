@@ -3,6 +3,9 @@
 /sample-project/*
 !/sample-project/source/
 !/sample-project/final_documents/
+/sample-project-import/*
+!/sample-project-import/source/
+!/sample-project-import/final_documents/
 /sample-project-assignment/*
 !/sample-project-assignment/source/
 !/sample-project-assignment/final_documents/

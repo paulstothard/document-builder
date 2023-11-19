@@ -3,7 +3,9 @@
 Convert Markdown to PDF and HTML.
 
 Usage: 
-    python document-builder.py [-a] [-c CONFIG] [-d] [-f] [-p PROJECT] [-r] [-v]
+    python document-builder.py [-a] [-c CONFIG_FILE] [-f] 
+                               [-m MARKDOWN_FOLDER] [-p PROJECT_FOLDER] 
+                               [-r] [-v]
 
 Author: 
     Paul Stothard
@@ -19,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import textwrap
 import time
 
 required_major = 3
@@ -155,7 +158,7 @@ def create_link_files(folders):
                 open(link_file_path, "a").close()
 
 
-def create_project(folder_path):
+def create_project(folder_path, include_example_documents=False):
     if os.path.exists(folder_path):
         pretty_print_error(f"Folder '{folder_path}' already exists.")
         sys.exit(1)
@@ -208,29 +211,30 @@ def create_project(folder_path):
             if check_file_exists(value):
                 shutil.copy2(value, os.path.join(folder_path, "build_includes"))
 
-    documents = ["document_one", "document_two", "document_three"]
-    for document in documents:
-        os.makedirs(os.path.join(folder_path, "source", document))
+    if include_example_documents:
+        documents = ["document_one", "document_two", "document_three"]
+        for document in documents:
+            os.makedirs(os.path.join(folder_path, "source", document))
 
-    for document in documents:
-        os.makedirs(os.path.join(folder_path, "source", document, "data"))
-        os.makedirs(os.path.join(folder_path, "source", document, "data_not_tracked"))
-        os.makedirs(os.path.join(folder_path, "source", document, "includes"))
-        formatted_document = document.replace("_", " ").capitalize()
-        with open(
-            os.path.join(folder_path, "source", document, "document.md"), "w"
-        ) as f:
-            f.write(f"# {formatted_document}\n")
-            f.write("\n")  # Add a blank line at the end
-        with open(
-            os.path.join(folder_path, "source", document, "settings.yaml"), "w"
-        ) as f:
-            f.write("---\n")
-            f.write(f'title: "Sample document"\n')
-            f.write("author: [Your name here]\n")
-            f.write("colorlinks: TRUE\n")
-            f.write("code-block-font-size: \\footnotesize\n")
-            f.write("...\n")
+        for document in documents:
+            os.makedirs(os.path.join(folder_path, "source", document, "data"))
+            os.makedirs(os.path.join(folder_path, "source", document, "data_not_tracked"))
+            os.makedirs(os.path.join(folder_path, "source", document, "includes"))
+            formatted_document = document.replace("_", " ").capitalize()
+            with open(
+                os.path.join(folder_path, "source", document, "document.md"), "w"
+            ) as f:
+                f.write(f"# {formatted_document}\n")
+                f.write("\n")  # Add a blank line at the end
+            with open(
+                os.path.join(folder_path, "source", document, "settings.yaml"), "w"
+            ) as f:
+                f.write("---\n")
+                f.write(f'title: "Sample document"\n')
+                f.write("author: [Your name here]\n")
+                f.write("colorlinks: TRUE\n")
+                f.write("code-block-font-size: \\footnotesize\n")
+                f.write("...\n")
 
     pretty_print("Project created successfully.")
 
@@ -585,6 +589,161 @@ def get_modified_folders(folders):
     return modified_folders
 
 
+def import_markdown_files(source):
+    markdown_files = [
+        os.path.join(source, f) for f in os.listdir(source) if f.endswith(".md")
+    ]
+    project_source_folder = config["project_source_folder"]
+
+    # list to track the source file and the document.md file
+    file_paths = []
+
+    # loop through markdown files
+    for file in markdown_files:
+        # get the file name without the extesion nor the path
+        file_name = os.path.splitext(os.path.basename(file))[0]
+
+        # see if a folder with the same name exists in project_source_folder
+        if os.path.isdir(os.path.join(project_source_folder, file_name)):
+            pretty_print_emphasis(
+                f"Folder {file_name} already exists in {project_source_folder}. Skipping...",
+                True,
+            )
+            continue
+
+        # create a new folder in project_source_folder with the name file_name
+        new_folder_path = os.path.join(project_source_folder, file_name)
+        os.makedirs(new_folder_path, exist_ok=True)
+
+        # create the data and data_not_tracked folders at new_folder_path if they don't exist already
+        os.makedirs(os.path.join(new_folder_path, 'data'), exist_ok=True)
+        os.makedirs(os.path.join(new_folder_path, 'data_not_tracked'), exist_ok=True)
+
+        # copy the file to the new folder and rename it to document.md
+        document_md_path = os.path.join(new_folder_path, "document.md")
+        shutil.copy2(file, document_md_path)
+
+        # add the source file and the document.md file to the list
+        file_paths.append((file, document_md_path))
+
+    # loop through file_paths and then go through document.md to find the image file
+    # linked in the document and copy them to an includes folder at the destination
+    for file_path in file_paths:
+        # get the folder name
+        folder_name = os.path.basename(os.path.dirname(file_path[1]))
+
+        # get the includes folder path
+        includes_folder_path = os.path.join(
+            project_source_folder, folder_name, "includes"
+        )
+
+        # create the includes folder if it doesn't exist
+        os.makedirs(includes_folder_path, exist_ok=True)
+
+        # open the document.md file
+        with open(file_path[1], "r+") as f:
+            content = f.read()
+            matches = re.findall(r"!\[.*\]\((.*\..*)\)", content)
+            for match in matches:
+                # get the image file name
+                image_file_name = os.path.basename(match)
+
+                # get the source image file path
+                source_image_file_path = os.path.join(
+                    os.path.dirname(file_path[0]), match
+                )
+
+                # check if the source image file exists
+                if os.path.isfile(source_image_file_path):
+                    # get the destination image file path
+                    destination_image_file_path = os.path.join(
+                        includes_folder_path, image_file_name
+                    )
+
+                    # copy the image file to the destination
+                    shutil.copy2(source_image_file_path, destination_image_file_path)
+
+                    # replace the image file path in the document.md file
+                    content = content.replace(
+                        match, os.path.join("includes", image_file_name)
+                    )
+
+            # write the new content to the document.md file
+            f.seek(0)
+            f.write(content)
+            f.truncate()
+
+    # extract yaml header if present
+    # extract yaml header if present
+    for file_path in file_paths:
+        # get the folder name
+        folder_name = os.path.basename(os.path.dirname(file_path[1]))
+
+        # replace multiple underscores or dashes in a row with one space
+        title = re.sub("_+|-+", " ", folder_name)
+
+        # default YAML content
+        default_yaml = textwrap.dedent(
+            f"""\
+            ---
+            title: "{title}"
+            author: [Your name here]
+            colorlinks: TRUE
+            code-block-font-size: \\footnotesize
+            ..."""
+        )
+
+        # open the document.md file
+        with open(file_path[1], "r+") as f:
+            lines = f.readlines()
+
+            # find the start of the YAML header
+            start_of_header = next(
+                (i for i, line in enumerate(lines) if line.strip() == "---"), -1
+            )
+
+            # check if the file contains a YAML header
+            if start_of_header != -1:
+                # find the end of the YAML header
+                end_of_header = next(
+                    (
+                        i
+                        for i, line in enumerate(lines[start_of_header:])
+                        if line.strip() == "..."
+                    ),
+                    -1,
+                )
+
+                # check if the end of the YAML header was found
+                if end_of_header != -1:
+                    # adjust the end of the header index to be relative to the start of the file
+                    end_of_header += start_of_header
+
+                    # extract the YAML header
+                    yaml_header = "".join(lines[start_of_header : end_of_header + 1])
+
+                    # write the YAML header to a settings.yaml file
+                    with open(
+                        os.path.join(os.path.dirname(file_path[1]), "settings.yaml"),
+                        "w",
+                    ) as settings_file:
+                        settings_file.write(yaml_header)
+
+                    # remove the YAML header and any blank lines after it from the document.md file
+                    content = "".join(lines[end_of_header + 1 :]).lstrip()
+
+                    # write the new content to the document.md file
+                    f.seek(0)
+                    f.write(content)
+                    f.truncate()
+            else:
+                # write the default YAML content to a settings.yaml file
+                with open(
+                    os.path.join(os.path.dirname(file_path[1]), "settings.yaml"), "w"
+                ) as settings_file:
+                    settings_file.write(default_yaml)
+
+
 def load_config(config_file_path):
     global config
     try:
@@ -616,7 +775,7 @@ def prompt_yes_no(message, default=None):
     if default is not None:
         valid_responses[""] = default
 
-    prompt = f"\033[95m{message} (yes/no{default_str}):\033[0m " # Purple text
+    prompt = f"\033[95m{message} (yes/no{default_str}):\033[0m "  # Purple text
     while True:
         response = input(prompt).lower()
         if response in valid_responses:
@@ -651,7 +810,9 @@ def publish_data():
                 file_name_without_extension = os.path.splitext(file_name)[0]
                 new_file_name = f"{file_name_without_extension}.txt"
                 new_file_path = os.path.join(data_to_share_links_folder, new_file_name)
-                print(f"\033[95mNew data file generated, add sharable link to\033[94m {new_file_path}\033[0m")
+                print(
+                    f"\033[95mNew data file generated, add sharable link to\033[94m {new_file_path}\033[0m"
+                )
 
 
 def publish_htmls():
@@ -1009,10 +1170,10 @@ def main():
         help="Specify the configuration file to read from.",
     )
     parser.add_argument(
-        "-d",
-        "--data",
+        "-e",
+        "--example",
         action="store_true",
-        help="Generate data files to be shared and exit.",
+        help="Include example documents in new projects.",
     )
     parser.add_argument(
         "-f",
@@ -1021,10 +1182,17 @@ def main():
         help="Reprocess input files even if conversion files exist in output directory.",
     )
     parser.add_argument(
+        "-m",
+        "--markdown",
+        type=str,
+        default=None,
+        help="Import Markdown files from the specified folder and exit.",
+    )
+    parser.add_argument(
         "-p",
         "--project",
         type=str,
-        help="Create a new empty project in the specified folder.",
+        help="Create a new empty project in the specified folder and exit.",
     )
     parser.add_argument(
         "-r",
@@ -1054,6 +1222,12 @@ def main():
         )
 
     load_config(config_file_path)
+
+    if not args.project and not args.config:
+        pretty_print_error(
+            "Use -p to create a project or -c to process an existing project."
+        )
+        sys.exit(1)
 
     base_dir = os.path.dirname(os.path.realpath(__file__))
     if not config.get("project_root"):
@@ -1086,7 +1260,8 @@ def main():
                 sys.exit(1)
 
     if args.project:
-        create_project(args.project)
+        create_project(args.project, args.example)
+        pretty_print(f"Project '{args.project}' created.", args.verbose)
         sys.exit(0)
 
     for key, value in config.items():
@@ -1138,6 +1313,11 @@ def main():
         clean_folder(config["project_pdf_output_folder"])
         clean_folder(config["project_build_logs_folder"])
 
+    if args.markdown:
+        pretty_print("Importing Markdown files...", args.verbose)
+        import_markdown_files(args.markdown)
+        sys.exit(0)
+
     if not args.force:
         folders = get_modified_folders(folders)
 
@@ -1147,10 +1327,6 @@ def main():
         copy_and_compress_data_folders(folders)
     else:
         copy_and_compress_data_folders(get_modified_data_folders(folders))
-
-    if args.data:
-        pretty_print("Data files generated.", args.verbose)
-        sys.exit(0)
 
     pretty_print("Copying source folders to Markdown output...", args.verbose)
     copy_source_folders_to_markdown_output(folders)
