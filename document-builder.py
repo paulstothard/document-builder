@@ -25,6 +25,7 @@ required_minor = 8
 try:
     import dropbox
     import dropbox.exceptions
+    from dropbox.exceptions import AuthError
 
     dropbox_available = True
 except ImportError:
@@ -527,9 +528,11 @@ def get_dropbox_client(access_token):
     except AuthError:
         # If an AuthError is raised, the access token is invalid or expired
         pretty_print_error(
-            "The access token is invalid or expired. Please enter a new one."
+            "The access token is invalid or expired. Retrieve a new access token from the Dropbox App Console and enter it below, or enter 'q' to quit."
         )
-        access_token = input("Enter the new access token: ")
+        access_token = input("Enter the new access token or 'q' to quit: ")
+        if access_token.lower() == 'q':
+            sys.exit(0)
         dbx = dropbox.Dropbox(access_token)
         try:
             # Try to get account info with the new access token
@@ -864,8 +867,19 @@ def publish_htmls():
 
     css_file_name = os.path.basename(pandoc_css_file)
     toc_contents = [
-        f'<head><link rel="stylesheet" type="text/css" href="styles/{css_file_name}"></head>',
-        "<h1>Table of Contents</h1>",
+        '<!DOCTYPE html>',
+        '<html lang="en">',
+        '<head>',
+        '<meta charset="UTF-8">',
+        '<title>Table of Contents</title>',
+        f'<link rel="stylesheet" type="text/css" href="styles/{css_file_name}">',
+        '</head>',
+        '<body>',
+        '<header>',
+        '<h1>Table of Contents</h1>',
+        '</header>',
+        '<nav>',
+        '<ul>'
     ]
 
     document_order = config.get("document_order", [])
@@ -893,7 +907,7 @@ def publish_htmls():
                         shutil.copy2(source_html_file, destination_html_file)
                     if file_name == "document.html":
                         toc_contents.append(
-                            f'<a href="{os.path.join(folder_name, file_name)}">{folder_name}</a><br>'
+                            f'<li><a href="{os.path.join(folder_name, file_name)}">{folder_name}</a></li>'
                         )
             for folder in ["includes", "styles"]:
                 source_folder = os.path.join(source_html_folder, folder)
@@ -902,6 +916,8 @@ def publish_htmls():
                     shutil.copytree(
                         source_folder, destination_folder, dirs_exist_ok=True
                     )
+
+    toc_contents.extend(['</ul>', '</nav>', '</body>', '</html>'])
 
     with open(os.path.join(publish_folder_html, "index.html"), "w") as index_file:
         index_file.write("\n".join(toc_contents))
@@ -1155,9 +1171,6 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
     dropbox_folder_name = f"{project_id}/{os.path.basename(project_root)}"
 
     dbx = get_dropbox_client(access_token)
-
-    # export access_token to environment variable
-    os.environ[config["dropbox_access_token_variable"]] = access_token
 
     # loop through the .gz and .zip files in publish_folder_data and upload to Dropbox
     file_links = []
