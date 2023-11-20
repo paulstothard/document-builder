@@ -11,7 +11,9 @@ Download the data associated with this tutorial using:
 ```bash
 $ cd ~
 $ wget \
-"https://www.google.ca" \
+"https://www.dropbox.com/scl/fi/vpm8a02eykgkg7qhoyl\
+xw/another_document.tar.gz?rlkey=evnxmecq6q95tm6n0\
+q238cy33&dl=0" \
 -O another_document.tar.gz
 $ tar xvzf another_document.tar.gz
 ```

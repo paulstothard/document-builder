@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
 """
-Convert Markdown to PDF and HTML.
-
-Usage: 
-    python document-builder.py [-a] [-c CONFIG_FILE] [-f] 
-                               [-m MARKDOWN_FOLDER] [-p PROJECT_FOLDER] 
-                               [-r] [-v]
-
 Author: 
     Paul Stothard
 """
@@ -27,6 +20,14 @@ import uuid
 
 required_major = 3
 required_minor = 8
+
+try:
+    import dropbox
+    import dropbox.exceptions
+
+    dropbox_available = True
+except ImportError:
+    dropbox_available = False
 
 
 def check_executables(executables, verbose=False):
@@ -190,7 +191,7 @@ def create_project(folder_path, include_example_documents=False):
     with open(os.path.join(folder_path, "config", "config.json"), "r+") as f:
         config_data = json.load(f)
 
-        config_data['project_id'] = str(uuid.uuid4())
+        config_data["project_id"] = str(uuid.uuid4())
 
         keys_to_update = [
             "project_root",
@@ -222,7 +223,9 @@ def create_project(folder_path, include_example_documents=False):
 
         for document in documents:
             os.makedirs(os.path.join(folder_path, "source", document, "data"))
-            os.makedirs(os.path.join(folder_path, "source", document, "data_not_tracked"))
+            os.makedirs(
+                os.path.join(folder_path, "source", document, "data_not_tracked")
+            )
             os.makedirs(os.path.join(folder_path, "source", document, "includes"))
             formatted_document = document.replace("_", " ").capitalize()
             with open(
@@ -620,8 +623,8 @@ def import_markdown_files(source):
         os.makedirs(new_folder_path, exist_ok=True)
 
         # create the data and data_not_tracked folders at new_folder_path if they don't exist already
-        os.makedirs(os.path.join(new_folder_path, 'data'), exist_ok=True)
-        os.makedirs(os.path.join(new_folder_path, 'data_not_tracked'), exist_ok=True)
+        os.makedirs(os.path.join(new_folder_path, "data"), exist_ok=True)
+        os.makedirs(os.path.join(new_folder_path, "data_not_tracked"), exist_ok=True)
 
         # copy the file to the new folder and rename it to document.md
         document_md_path = os.path.join(new_folder_path, "document.md")
@@ -1112,6 +1115,79 @@ def run_markdown_lint(folders):
                 )
 
 
+def upload_data_files_to_dropbox_and_set_shareable_links():
+    project_root = config["project_root"].rstrip("/")
+    publish_folder_data = os.path.join(config["publish_folder_data"], "data")
+    data_to_share_links_folder = config["project_data_to_share_links_folder"]
+    project_id = config["project_id"]
+    access_token = os.getenv(config["dropbox_access_token_variable"])
+
+    # give error if id is not set
+    if not project_id:
+        pretty_print_error("Project ID not set in config file.")
+        sys.exit(1)
+
+    dropbox_folder_name = f"{project_id}/{os.path.basename(project_root)}"
+
+    dbx = dropbox.Dropbox(access_token)
+
+    # loop through the .gz and .zip files in publish_folder_data and upload to Dropbox
+    file_links = []
+    for file_name in os.listdir(publish_folder_data):
+        if file_name.endswith((".zip", ".gz")):
+            source_data_file = os.path.join(publish_folder_data, file_name)
+            destination_data_file = f"/{dropbox_folder_name}/{file_name}"
+            if not os.path.exists(destination_data_file) or not filecmp.cmp(
+                source_data_file, destination_data_file, shallow=False
+            ):
+                pretty_print(f"Uploading {file_name} to Dropbox...", True)
+                with open(source_data_file, "rb") as f:
+                    dbx.files_upload(f.read(), destination_data_file)
+
+                # Create a shareable link for the file
+                try:
+                    shared_link_metadata = dbx.sharing_create_shared_link_with_settings(
+                        destination_data_file
+                    )
+                except dropbox.exceptions.ApiError as err:
+                    if "shared_link_already_exists" in str(err):
+                        # If the link already exists, retrieve the existing link
+                        shared_links = dbx.sharing_list_shared_links(
+                            path=destination_data_file
+                        ).links
+                        if shared_links:
+                            shared_link_metadata = shared_links[0]
+                        else:
+                            pretty_print_error(
+                                f"Failed to retrieve the existing shareable link for {file_name}"
+                            )
+                            continue
+                    else:
+                        pretty_print_error(
+                            f"Failed to create a shareable link for {file_name}: {err}"
+                        )
+                        continue
+
+                # Create a tuple of the file name and the shareable link and add it to the list
+                file_links.append((file_name, shared_link_metadata.url))
+
+    # loop through the file_links list and write the sharable link to the corresponding file in data_to_share_links_folder
+    for file_link in file_links:
+        # Regex to remove double extensions like .tar.gz or single extension
+        file_name_without_extension = re.sub(
+            r"(\.tar\.gz|\.tar\.bz2|\.tar\.xz|\.[^.]+)$", "", file_link[0]
+        )
+        new_file_name = f"{file_name_without_extension}.txt"
+
+        # Write the link to the new file
+        with open(os.path.join(data_to_share_links_folder, new_file_name), "w") as f:
+            f.write(file_link[1])
+            pretty_print(
+                f"Shareable link for {file_link[0]} written to {data_to_share_links_folder}",
+                True,
+            )
+
+
 def validate_assignment_markdown(folders):
     markdown_output_folder = config["project_markdown_output_folder"]
     for folder in folders:
@@ -1160,10 +1236,12 @@ def validate_assignment_markdown(folders):
 
 def main():
     parser = argparse.ArgumentParser(description="Convert Markdown to PDF and HTML.")
-    subparsers = parser.add_subparsers(dest='command')
+    subparsers = parser.add_subparsers(dest="command")
 
     # create subcommand
-    create_parser = subparsers.add_parser('create', help='Create a new empty project and exit.')
+    create_parser = subparsers.add_parser(
+        "create", help="Create a new empty project and exit."
+    )
     create_parser.add_argument(
         "-p",
         "--project",
@@ -1185,7 +1263,9 @@ def main():
     )
 
     # import subcommand
-    import_parser = subparsers.add_parser('import', help='Import Markdown files into an existing project.')
+    import_parser = subparsers.add_parser(
+        "import", help="Import Markdown files into an existing project."
+    )
     import_parser.add_argument(
         "-m",
         "--markdown",
@@ -1208,7 +1288,9 @@ def main():
     )
 
     # process subcommand
-    process_parser = subparsers.add_parser('process', help='Process the data and documents in a project.')
+    process_parser = subparsers.add_parser(
+        "process", help="Process the data and documents in a project."
+    )
     process_parser.add_argument(
         "-c",
         "--config",
@@ -1242,7 +1324,10 @@ def main():
     )
 
     # dropbox subcommand
-    dropbox_parser = subparsers.add_parser('dropbox', help='Process the data and documents in a project and publish to data to Dropbox.')
+    dropbox_parser = subparsers.add_parser(
+        "dropbox",
+        help="Process the data and documents in a project and publish to data to Dropbox.",
+    )
     dropbox_parser.add_argument(
         "-c",
         "--config",
@@ -1290,7 +1375,7 @@ def main():
         )
         sys.exit(1)
 
-    if hasattr(args, 'config') and args.config:
+    if hasattr(args, "config") and args.config:
         config_file_path = args.config
     else:
         config_file_path = os.path.join(
@@ -1365,6 +1450,7 @@ def main():
                 sys.exit(1)
 
     folders = get_folders_list(config["project_source_folder"])
+    folders_copy = folders.copy()
 
     pretty_print("Checking executables...", args.verbose)
     executables = {
@@ -1375,7 +1461,7 @@ def main():
     }
     check_executables(executables, args.verbose)
 
-    if hasattr(args, 'remove') and args.remove:
+    if hasattr(args, "remove") and args.remove:
         pretty_print("Cleaning output folders...", args.verbose)
         clean_folder(config["project_data_output_folder"])
         clean_folder(config["project_markdown_output_folder"])
@@ -1388,24 +1474,38 @@ def main():
         import_markdown_files(args.markdown)
         sys.exit(0)
 
-    if not (hasattr(args, 'force') and args.force):
+    if not (hasattr(args, "force") and args.force):
         folders = get_modified_folders(folders)
 
     pretty_print("Copying and compressing data folders...", args.verbose)
 
-    if hasattr(args, 'force') and args.force:
+    if hasattr(args, "force") and args.force:
         copy_and_compress_data_folders(folders)
     else:
         copy_and_compress_data_folders(get_modified_data_folders(folders))
+
+    pretty_print("Publishing data...", args.verbose)
+    publish_data()
+
+    pretty_print("Creating link files...", args.verbose)
+    create_link_files(folders)
+
+    if args.command == "dropbox":
+        if not dropbox_available:
+            pretty_print_error("Dropbox is not available.")
+            pretty_print_error("Install using 'pip install dropbox'.")
+            sys.exit(1)
+
+        pretty_print("Sharing data files using Dropbox...", args.verbose)
+        upload_data_files_to_dropbox_and_set_shareable_links()
+        # need to reprocess documents that have modified link files
+        folders = get_modified_folders(folders_copy)
 
     pretty_print("Copying source folders to Markdown output...", args.verbose)
     copy_source_folders_to_markdown_output(folders)
 
     pretty_print("Editing Markdown includes...", args.verbose)
     edit_markdown_includes(folders)
-
-    pretty_print("Creating link files...", args.verbose)
-    create_link_files(folders)
 
     pretty_print("Running spellchecker...", args.verbose)
     run_spellchecker(folders)
@@ -1421,7 +1521,7 @@ def main():
     )
     replace_data_download_links_in_markdown(folders)
 
-    if hasattr(args, 'assignment') and args.assignment:
+    if hasattr(args, "assignment") and args.assignment:
         pretty_print("Processing documents as assignments...", args.verbose)
 
         pretty_print("Validating assignment Markdown...", args.verbose)
@@ -1435,9 +1535,6 @@ def main():
 
         pretty_print("Publishing PDFs...", args.verbose)
         publish_assignment_pdfs()
-
-        pretty_print("Publishing data...", args.verbose)
-        publish_data()
 
         pretty_print("Creating timestamp files...", args.verbose)
         create_timestamp_files(folders)
@@ -1463,9 +1560,6 @@ def main():
 
     pretty_print("Publishing HTMLs...", args.verbose)
     publish_htmls()
-
-    pretty_print("Publishing data...", args.verbose)
-    publish_data()
 
     pretty_print("Creating timestamp files...", args.verbose)
     create_timestamp_files(folders)

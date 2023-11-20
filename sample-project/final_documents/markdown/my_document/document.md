@@ -15,7 +15,9 @@ Download the data using the following command:
 ```bash
 $ cd ~
 $ wget \
-"https://www.reddit.com" \
+"https://www.dropbox.com/scl/fi/uihb8d0okqgcoaafgzz\
+uw/my_document.tar.gz?rlkey=xtbcbsybr4raj1isy0wid5\
+2w3&dl=0" \
 -O my_document.tar.gz
 $ tar xvzf my_document.tar.gz
 ```
