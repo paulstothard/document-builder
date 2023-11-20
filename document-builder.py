@@ -23,6 +23,7 @@ import sys
 import tarfile
 import textwrap
 import time
+import uuid
 
 required_major = 3
 required_minor = 8
@@ -188,6 +189,9 @@ def create_project(folder_path, include_example_documents=False):
 
     with open(os.path.join(folder_path, "config", "config.json"), "r+") as f:
         config_data = json.load(f)
+
+        config_data['project_id'] = str(uuid.uuid4())
+
         keys_to_update = [
             "project_root",
             "publish_folder_data",
@@ -1156,54 +1160,126 @@ def validate_assignment_markdown(folders):
 
 def main():
     parser = argparse.ArgumentParser(description="Convert Markdown to PDF and HTML.")
-    parser.add_argument(
-        "-a",
-        "--assignment",
-        action="store_true",
-        help="Process documents in 'assignment mode'.",
-    )
-    parser.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        default=None,
-        help="Specify the configuration file to read from.",
-    )
-    parser.add_argument(
-        "-e",
-        "--example",
-        action="store_true",
-        help="Include example documents in new projects.",
-    )
-    parser.add_argument(
-        "-f",
-        "--force",
-        action="store_true",
-        help="Reprocess input files even if conversion files exist in output directory.",
-    )
-    parser.add_argument(
-        "-m",
-        "--markdown",
-        type=str,
-        default=None,
-        help="Import Markdown files from the specified folder and exit.",
-    )
-    parser.add_argument(
+    subparsers = parser.add_subparsers(dest='command')
+
+    # create subcommand
+    create_parser = subparsers.add_parser('create', help='Create a new empty project and exit.')
+    create_parser.add_argument(
         "-p",
         "--project",
         type=str,
-        help="Create a new empty project in the specified folder and exit.",
+        required=True,
+        help="The project folder to create.",
     )
-    parser.add_argument(
+    create_parser.add_argument(
+        "-e",
+        "--example",
+        action="store_true",
+        help="Include example documents in the project.",
+    )
+    create_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Increase output verbosity.",
+    )
+
+    # import subcommand
+    import_parser = subparsers.add_parser('import', help='Import Markdown files into an existing project.')
+    import_parser.add_argument(
+        "-m",
+        "--markdown",
+        type=str,
+        required=True,
+        help="The folder containing the Markdown documents to import.",
+    )
+    import_parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="The configuration file of the project to import into.",
+    )
+    import_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Increase output verbosity.",
+    )
+
+    # process subcommand
+    process_parser = subparsers.add_parser('process', help='Process the data and documents in a project.')
+    process_parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="The configuration file of the project to process.",
+    )
+    process_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Reprocess input files even if they have been previously processed and haven't changed.",
+    )
+    process_parser.add_argument(
         "-r",
         "--remove",
         action="store_true",
         help="Remove existing content from output folders.",
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Display verbose messages."
+    process_parser.add_argument(
+        "-a",
+        "--assignment",
+        action="store_true",
+        help="Process documents in 'assignment mode'.",
     )
+    process_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Increase output verbosity.",
+    )
+
+    # dropbox subcommand
+    dropbox_parser = subparsers.add_parser('dropbox', help='Process the data and documents in a project and publish to data to Dropbox.')
+    dropbox_parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="The configuration file of the project to process.",
+    )
+    dropbox_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Reprocess input files even if they have been previously processed and haven't changed.",
+    )
+    dropbox_parser.add_argument(
+        "-r",
+        "--remove",
+        action="store_true",
+        help="Remove existing content from output folders.",
+    )
+    dropbox_parser.add_argument(
+        "-a",
+        "--assignment",
+        action="store_true",
+        help="Process documents in 'assignment mode'.",
+    )
+    dropbox_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Increase output verbosity.",
+    )
+
     args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        sys.exit(1)
 
     if not (
         sys.version_info.major == required_major
@@ -1214,7 +1290,7 @@ def main():
         )
         sys.exit(1)
 
-    if args.config:
+    if hasattr(args, 'config') and args.config:
         config_file_path = args.config
     else:
         config_file_path = os.path.join(
@@ -1222,12 +1298,6 @@ def main():
         )
 
     load_config(config_file_path)
-
-    if not args.project and not args.config:
-        pretty_print_error(
-            "Use -p to create a project or -c to process an existing project."
-        )
-        sys.exit(1)
 
     base_dir = os.path.dirname(os.path.realpath(__file__))
     if not config.get("project_root"):
@@ -1259,7 +1329,7 @@ def main():
                 pretty_print_error(f"File does not exist: {value}")
                 sys.exit(1)
 
-    if args.project:
+    if args.command == "create":
         create_project(args.project, args.example)
         pretty_print(f"Project '{args.project}' created.", args.verbose)
         sys.exit(0)
@@ -1305,7 +1375,7 @@ def main():
     }
     check_executables(executables, args.verbose)
 
-    if args.remove:
+    if hasattr(args, 'remove') and args.remove:
         pretty_print("Cleaning output folders...", args.verbose)
         clean_folder(config["project_data_output_folder"])
         clean_folder(config["project_markdown_output_folder"])
@@ -1313,17 +1383,17 @@ def main():
         clean_folder(config["project_pdf_output_folder"])
         clean_folder(config["project_build_logs_folder"])
 
-    if args.markdown:
+    if args.command == "import":
         pretty_print("Importing Markdown files...", args.verbose)
         import_markdown_files(args.markdown)
         sys.exit(0)
 
-    if not args.force:
+    if not (hasattr(args, 'force') and args.force):
         folders = get_modified_folders(folders)
 
     pretty_print("Copying and compressing data folders...", args.verbose)
 
-    if args.force:
+    if hasattr(args, 'force') and args.force:
         copy_and_compress_data_folders(folders)
     else:
         copy_and_compress_data_folders(get_modified_data_folders(folders))
@@ -1351,7 +1421,7 @@ def main():
     )
     replace_data_download_links_in_markdown(folders)
 
-    if args.assignment:
+    if hasattr(args, 'assignment') and args.assignment:
         pretty_print("Processing documents as assignments...", args.verbose)
 
         pretty_print("Validating assignment Markdown...", args.verbose)

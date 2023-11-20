@@ -12,13 +12,13 @@ The `document-builder.py` script produces nicely formatted PDF and HTML document
 
 ## Usage
 
-Create a new empty project using the `-p` option:
+Create a new empty project using the `create` command:
 
 ```bash
-python document-builder.py -e -p my_project
+python document-builder.py create -p my_project -e
 ```
 
-This will create a new folder named `my_project` containing project subfolders, a configuration file, and example content (folders and files in the `source` folder):
+This will create a new folder named `my_project` containing project subfolders, a configuration file, and example content (because of the `-e` option):
 
 ```text
 my_project/
@@ -34,7 +34,7 @@ my_project/
 └── source
 ```
 
-Simply edit the `source` folder to add content. Initially it contains input data for three sample documents (if `-e` is used):
+Simply edit the `source` folder to add content. Initially it contains input data for three sample documents:
 
 ```text
 └── source
@@ -66,10 +66,10 @@ Rename the document folders or add new folders to hold the documents to be proce
 * `includes` - a folder containing any files that are to be included with or in the document. Typically this folder will contain images.
 * `settings.yaml` - the settings for the document in YAML format. This file is used to add title, header, and footer content to the document.
 
-With your content in place, run the following command to generate the final documents from the Markdown source files:
+With your content in place, use the `process` command to generate the final documents from the Markdown source files:
 
 ```bash
-python document-builder.py -c my_project/config/config.json
+python document-builder.py process -c my_project/config/config.json
 ```
 
 The final content will be written to the `my_project/final_documents` folder, into various subfolders:
@@ -92,24 +92,24 @@ Next, create the folder that will hold the final documents (if it doesn't alread
 mkdir -p ~/Library/CloudStorage/Dropbox/to_share
 ```
 
-Re-run the `document-builder.py` command to generate the final documents and data files in their new locations:
+Re-run the `process` command to generate the final documents and data files in their new locations:
 
 ```bash
-python document-builder.py -c my_project/config/config.json
+python document-builder.py process -c my_project/config/config.json
 ```
 
-As needed, add new documents to the project, or edit existing documents. You can also change the data provided in the `data` and `data_not_tracked` folders. Re-run the `document-builder.py` command to generate the final documents with the updated content:
+As needed, add new documents to the project, or edit existing documents. You can also change the data provided in the `data` and `data_not_tracked` folders. Re-run the `process` command to generate the final documents with the updated content:
 
 ```bash
-python document-builder.py -c my_project/config/config.json
+python document-builder.py process -c my_project/config/config.json
 ```
 
 Only the new or changed documents will be processed. The final documents will be written to the same locations as before, overwriting the previous versions.
 
-Whenever data files are changed, you may need to update the sharable links for the data files. See the section on [sharing data files](#sharing-data-files) for details. Once you have updated the sharable links, re-run the `document-builder.py` command to generate the final documents with the updated links inserted:
+Whenever data files are changed, you may need to update the sharable links for the data files. See the section on [sharing data files](#sharing-data-files) for details. Once you have updated the sharable links, re-run the `process` command to generate the final documents with the updated links inserted:
 
 ```bash
-python document-builder.py -c my_project/config/config.json
+python document-builder.py process -c my_project/config/config.json
 ```
 
 ## Sharing data files
@@ -128,7 +128,7 @@ The `sample-project` folder contains an example project with three sample docume
 
 ## Assignment mode
 
-Assignment mode (using the `--assignment` option) is used to generate assignment and assignment key PDFs from specially formatted Markdown documents. The `sample-project-assignment` folder contains an example "assignment" project with three sample assignment documents. The final documents generated from the sample project are available in the `sample-project-assignment/final_documents` folder. For assignment projects several PDFs are generated for each input document: a student version of the assignment, an instructor version of the assignment (i.e. with answers), and feedback files (PDFs that provide the answer for a single question).
+Assignment mode (using the `process` command with the `--assignment` option) is used to generate assignment and assignment key PDFs from specially formatted Markdown documents. The `sample-project-assignment` folder contains an example "assignment" project with three sample assignment documents. The final documents generated from the sample project are available in the `sample-project-assignment/final_documents` folder. For assignment projects several PDFs are generated for each input document: a student version of the assignment, an instructor version of the assignment (i.e. with answers), and feedback files (PDFs that provide the answer for a single question).
 
 To make use of this mode, use the following simple structure for the Markdown documents:
 
@@ -164,17 +164,6 @@ The `# Assignment`, `## Question`, and `### Answer` headings are required for pa
 
 The data sharing functionality works with assignment mode. Any instances of `[DATA_DOWNLOAD_LINK]` in the Markdown documents will be replaced with the sharable links for the `.tar.gz` files in the `data_to_share_links` folder.
 
-## document-builder.py options
-
-* `-a, --assignment` - parse specially formatted "assignment" Markdown documents to generate assignment and assignment key PDFs. See the `sample-project-assignment` folder for examples.
-* `-c, --config` - specify the path to the configuration file to use. The default is `config/config.json`.
-* `-e, --example` - include example documents in projects that are created with the `-p` option.
-* `-f, --force` - generate all output files even if they already exist and the source files have not changed.
-* `-m, --markdown` - import Markdown documents into a project from the specified folder and exit.
-* `-p, --project` - create a new empty project in the specified folder and exit.
-* `-r, --remove` - remove intermediate output files generated by `document-builder.py`. This option is useful if you have removed or renamed document folders and want to remove the corresponding output files, or if you want to reprocess all input files.
-* `-v, --verbose` - print verbose output.
-
 ## Example usage
 
 ### Creating a project and adding documents manually
@@ -182,7 +171,7 @@ The data sharing functionality works with assignment mode. Any instances of `[DA
 First create a new empty project:
 
 ```bash
-python document-builder.py -e -p my_project
+python document-builder.py create -p my_project -e
 ```
 
 Next add `document.md` files to folders in the `my_project/source` folder. Edit the `settings.yaml` files in the document folders to add title, header, and footer content to the documents. Copy data files to the `data` and `data_not_tracked` folders as needed.
@@ -190,27 +179,7 @@ Next add `document.md` files to folders in the `my_project/source` folder. Edit 
 Next, generate the final documents:
 
 ```bash
-python document-builder.py -c my_project/config/config.json
-```
-
-If there are data file links to be shared, add the links to the corresponding `.txt` files in the `my_project/data_to_share_links` folder. Re-run the `document-builder.py` command to generate the final documents with the updated links inserted:
-
-```bash
-python document-builder.py -c my_project/config/config.json
-```
-
-As needed, add new documents to the project, or edit existing documents. You can also change the data provided in the `data` and `data_not_tracked` folders. Re-run the `document-builder.py` command to generate the final documents with the updated content:
-
-```bash
-python document-builder.py -c my_project/config/config.json
-```
-
-Only the new or changed documents will be processed. The final documents will be written to the same locations as before, overwriting the previous versions.
-
-Whenever data files are changed, you may need to update the sharable links for the data files. See the section on [sharing data files](#sharing-data-files) for details. Once you have updated the sharable links, re-run the `document-builder.py` command to generate the final documents with the updated links inserted:
-
-```bash
-python document-builder.py -c my_project/config/config.json
+python document-builder.py process -c my_project/config/config.json
 ```
 
 ### Creating a project and importing existing documents
@@ -218,37 +187,17 @@ python document-builder.py -c my_project/config/config.json
 First create a new empty project:
 
 ```bash
-python document-builder.py -p my_project
+python document-builder.py create -p my_project
 ```
 
 Import Markdown documents from a folder into the project:
 
 ```bash
-python document-builder.py -c my_project/config/config.json -m sample-import-data
+python document-builder.py import -c my_project/config/config.json -m sample-import-data
 ```
 
 Copy data files to the `data` and `data_not_tracked` folders as needed and then generate the final documents:
 
 ```bash
-python document-builder.py -c my_project/config/config.json
-```
-
-If there are data file links to be shared, add the links to the corresponding `.txt` files in the `my_project/data_to_share_links` folder. Re-run the `document-builder.py` command to generate the final documents with the updated links inserted:
-
-```bash
-python document-builder.py -c my_project/config/config.json
-```
-
-As needed, add new documents to the project, or edit existing documents. You can also change the data provided in the `data` and `data_not_tracked` folders. Re-run the `document-builder.py` command to generate the final documents with the updated content:
-
-```bash
-python document-builder.py -c my_project/config/config.json
-```
-
-Only the new or changed documents will be processed. The final documents will be written to the same locations as before, overwriting the previous versions.
-
-Whenever data files are changed, you may need to update the sharable links for the data files. See the section on [sharing data files](#sharing-data-files) for details. Once you have updated the sharable links, re-run the `document-builder.py` command to generate the final documents with the updated links inserted:
-
-```bash
-python document-builder.py -c my_project/config/config.json
+python document-builder.py process -c my_project/config/config.json
 ```
