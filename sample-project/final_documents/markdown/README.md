@@ -1,5 +1,5 @@
 # Table of Contents
 
-- [document\_three](document_three/document.md)
-- [my\_document](my_document/document.md)
-- [another\_document](another_document/document.md)
+- [document three](document_three/document.md)
+- [my document](my_document/document.md)
+- [another document](another_document/document.md)

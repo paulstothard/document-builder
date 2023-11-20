@@ -531,7 +531,7 @@ def get_dropbox_client(access_token):
             "The access token is invalid or expired. Retrieve a new access token from the Dropbox App Console and enter it below, or enter 'q' to quit."
         )
         access_token = input("Enter the new access token or 'q' to quit: ")
-        if access_token.lower() == 'q':
+        if access_token.lower() == "q":
             sys.exit(0)
         dbx = dropbox.Dropbox(access_token)
         try:
@@ -867,19 +867,19 @@ def publish_htmls():
 
     css_file_name = os.path.basename(pandoc_css_file)
     toc_contents = [
-        '<!DOCTYPE html>',
+        "<!DOCTYPE html>",
         '<html lang="en">',
-        '<head>',
+        "<head>",
         '<meta charset="UTF-8">',
-        '<title>Table of Contents</title>',
+        "<title>Table of Contents</title>",
         f'<link rel="stylesheet" type="text/css" href="styles/{css_file_name}">',
-        '</head>',
-        '<body>',
-        '<header>',
-        '<h1>Table of Contents</h1>',
-        '</header>',
-        '<nav>',
-        '<ul>'
+        "</head>",
+        "<body>",
+        "<header>",
+        "<h1>Table of Contents</h1>",
+        "</header>",
+        "<nav>",
+        "<ul>",
     ]
 
     document_order = config.get("document_order", [])
@@ -906,8 +906,9 @@ def publish_htmls():
                     ):
                         shutil.copy2(source_html_file, destination_html_file)
                     if file_name == "document.html":
+                        formatted_folder_name = folder_name.replace("_", " ")
                         toc_contents.append(
-                            f'<li><a href="{os.path.join(folder_name, file_name)}">{folder_name}</a></li>'
+                            f'<li><a href="{os.path.join(folder_name, file_name)}">{formatted_folder_name}</a></li>'
                         )
             for folder in ["includes", "styles"]:
                 source_folder = os.path.join(source_html_folder, folder)
@@ -917,7 +918,7 @@ def publish_htmls():
                         source_folder, destination_folder, dirs_exist_ok=True
                     )
 
-    toc_contents.extend(['</ul>', '</nav>', '</body>', '</html>'])
+    toc_contents.extend(["</ul>", "</nav>", "</body>", "</html>"])
 
     with open(os.path.join(publish_folder_html, "index.html"), "w") as index_file:
         index_file.write("\n".join(toc_contents))
@@ -962,11 +963,10 @@ def publish_markdown():
                         source_markdown_file, destination_markdown_file, shallow=False
                     ):
                         shutil.copy2(source_markdown_file, destination_markdown_file)
-                    escaped_folder_name = folder_name.replace(
-                        "_", "\_"
-                    )  # Escape underscores
+
+                    formatted_folder_name = folder_name.replace("_", " ")
                     readme_contents.append(
-                        f"- [{escaped_folder_name}]({os.path.join(folder_name, file_name)})"
+                        f"- [{formatted_folder_name}]({os.path.join(folder_name, file_name)})"
                     )
             includes_folder = os.path.join(source_markdown_folder, "includes")
             if os.path.exists(includes_folder):
