@@ -5,6 +5,7 @@ Author:
 """
 
 import argparse
+from datetime import datetime
 import filecmp
 import hashlib
 import json
@@ -1115,7 +1116,7 @@ def run_markdown_lint(folders):
                 )
 
 
-def upload_data_files_to_dropbox_and_set_shareable_links():
+def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
     project_root = config["project_root"].rstrip("/")
     publish_folder_data = os.path.join(config["publish_folder_data"], "data")
     data_to_share_links_folder = config["project_data_to_share_links_folder"]
@@ -1137,12 +1138,34 @@ def upload_data_files_to_dropbox_and_set_shareable_links():
         if file_name.endswith((".zip", ".gz")):
             source_data_file = os.path.join(publish_folder_data, file_name)
             destination_data_file = f"/{dropbox_folder_name}/{file_name}"
-            if not os.path.exists(destination_data_file) or not filecmp.cmp(
-                source_data_file, destination_data_file, shallow=False
-            ):
+
+            try:
+                # Check if the file exists on Dropbox
+                metadata = dbx.files_get_metadata(destination_data_file)
+                dropbox_file_time = metadata.server_modified
+
+                # Get the creation time of the local file
+                local_file_time = datetime.fromtimestamp(
+                    os.path.getmtime(source_data_file)
+                )
+
+                # Compare the modification times
+                if local_file_time > dropbox_file_time or force:
+                    # Local file is newer or force is True, proceed to upload
+                    raise FileNotFoundError
+                else:
+                    # File is already up-to-date on Dropbox
+                    pretty_print(f"{file_name} is already up-to-date on Dropbox.", True)
+                    continue
+            except (dropbox.exceptions.ApiError, FileNotFoundError):
+                # If the file does not exist on Dropbox or local file is newer, upload it
                 pretty_print(f"Uploading {file_name} to Dropbox...", True)
                 with open(source_data_file, "rb") as f:
-                    dbx.files_upload(f.read(), destination_data_file)
+                    dbx.files_upload(
+                        f.read(),
+                        destination_data_file,
+                        mode=dropbox.files.WriteMode("overwrite"),
+                    )
 
                 # Create a shareable link for the file
                 try:
@@ -1178,12 +1201,26 @@ def upload_data_files_to_dropbox_and_set_shareable_links():
             r"(\.tar\.gz|\.tar\.bz2|\.tar\.xz|\.[^.]+)$", "", file_link[0]
         )
         new_file_name = f"{file_name_without_extension}.txt"
+        file_path = os.path.join(data_to_share_links_folder, new_file_name)
 
-        # Write the link to the new file
-        with open(os.path.join(data_to_share_links_folder, new_file_name), "w") as f:
-            f.write(file_link[1])
+        # Read the first line of the file
+        if os.path.exists(file_path):
+            with open(file_path, "r") as f:
+                first_line = f.readline().strip()
+        else:
+            first_line = None
+
+        # Write the link to the new file if it's different from the first line
+        if file_link[1] != first_line:
+            with open(file_path, "w") as f:
+                f.write(file_link[1])
+                pretty_print(
+                    f"Shareable link for {file_link[0]} written to {data_to_share_links_folder}",
+                    True,
+                )
+        else:
             pretty_print(
-                f"Shareable link for {file_link[0]} written to {data_to_share_links_folder}",
+                f"Shareable link for {file_link[0]} already exists in {data_to_share_links_folder}",
                 True,
             )
 
@@ -1497,7 +1534,7 @@ def main():
             sys.exit(1)
 
         pretty_print("Sharing data files using Dropbox...", args.verbose)
-        upload_data_files_to_dropbox_and_set_shareable_links()
+        upload_data_files_to_dropbox_and_set_shareable_links(args.force)
         # need to reprocess documents that have modified link files
         folders = get_modified_folders(folders_copy)
 
