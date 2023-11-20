@@ -519,6 +519,30 @@ def generate_pdfs(folders):
         subprocess.run(command)
 
 
+def get_dropbox_client(access_token):
+    dbx = dropbox.Dropbox(access_token)
+    try:
+        # Try to get account info
+        dbx.users_get_current_account()
+    except AuthError:
+        # If an AuthError is raised, the access token is invalid or expired
+        pretty_print_error(
+            "The access token is invalid or expired. Please enter a new one."
+        )
+        access_token = input("Enter the new access token: ")
+        dbx = dropbox.Dropbox(access_token)
+        try:
+            # Try to get account info with the new access token
+            dbx.users_get_current_account()
+        except AuthError:
+            # If an AuthError is raised again, the new access token is also invalid or expired
+            pretty_print_error(
+                "The new access token is invalid or expired. Exiting the program."
+            )
+            sys.exit(1)
+    return dbx
+
+
 def get_folders_list(source_folder):
     return [
         name
@@ -1130,7 +1154,10 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
 
     dropbox_folder_name = f"{project_id}/{os.path.basename(project_root)}"
 
-    dbx = dropbox.Dropbox(access_token)
+    dbx = get_dropbox_client(access_token)
+
+    # export access_token to environment variable
+    os.environ[config["dropbox_access_token_variable"]] = access_token
 
     # loop through the .gz and .zip files in publish_folder_data and upload to Dropbox
     file_links = []
