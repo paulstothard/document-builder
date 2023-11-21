@@ -35,8 +35,7 @@ except ImportError:
 def check_executables(executables, verbose=False):
     for executable, link in executables.items():
         if shutil.which(executable) is not None:
-            if verbose:
-                print(f"\033[92m{executable} is present\033[0m")  # Green text
+                pretty_print(f"{executable} is present", verbose=verbose)
         else:
             pretty_print_error(
                 f"{executable} is not present. You can download it from {link}"
