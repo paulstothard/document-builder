@@ -197,7 +197,7 @@ def create_project(folder_path, include_example_documents=False):
     with open(os.path.join(folder_path, "config", "config.json"), "r+") as f:
         config_data = json.load(f)
 
-        config_data["project_id"] = str(uuid.uuid4())
+        config_data["id"] = str(uuid.uuid4())
 
         keys_to_update = [
             "project_root",
@@ -1153,7 +1153,7 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
     project_root = config["project_root"].rstrip("/")
     publish_folder_data = config["publish_folder_data"]
     data_to_share_links_folder = config["project_data_to_share_links_folder"]
-    project_id = config["project_id"]
+    project_id = config["id"]
     access_token = os.getenv(config["dropbox_access_token_variable"])
 
     # give error if id is not set
