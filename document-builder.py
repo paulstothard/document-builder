@@ -646,7 +646,6 @@ def import_markdown_files(source):
         if os.path.isdir(os.path.join(project_source_folder, file_name)):
             pretty_print_emphasis(
                 f"Folder {file_name} already exists in {project_source_folder}. Skipping...",
-                True,
             )
             continue
 
@@ -688,24 +687,19 @@ def import_markdown_files(source):
                 image_file_name = os.path.basename(match)
 
                 # get the source image file path
-                source_image_file_path = os.path.join(
-                    os.path.dirname(file_path[0]), match
-                )
+                source_image_file_path = os.path.normpath(os.path.join(os.path.dirname(file_path[0]), match))
 
                 # check if the source image file exists
                 if os.path.isfile(source_image_file_path):
+
                     # get the destination image file path
-                    destination_image_file_path = os.path.join(
-                        includes_folder_path, image_file_name
-                    )
+                    destination_image_file_path = os.path.join(includes_folder_path, image_file_name)
 
                     # copy the image file to the destination
                     shutil.copy2(source_image_file_path, destination_image_file_path)
 
                     # replace the image file path in the document.md file
-                    content = content.replace(
-                        match, os.path.join("includes", image_file_name)
-                    )
+                    content = content.replace(match, os.path.join("includes", image_file_name))
 
             # write the new content to the document.md file
             f.seek(0)
