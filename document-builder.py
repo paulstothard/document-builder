@@ -175,6 +175,10 @@ def create_project(folder_path, include_example_documents=False):
         "data",
         "data_links",
         "final_documents",
+        "final_documents/data",
+        "final_documents/html",
+        "final_documents/markdown",
+        "final_documents/pdf",
         "html",
         "markdown",
         "build_includes",
@@ -182,7 +186,7 @@ def create_project(folder_path, include_example_documents=False):
         "source",
     ]
     for subfolder in subfolders:
-        os.makedirs(os.path.join(folder_path, subfolder))
+        os.makedirs(os.path.join(folder_path, subfolder), exist_ok=True)
 
     config_file_path = os.path.join(config["project_root"], "config", "config.json")
     if os.path.exists(config_file_path):
@@ -827,9 +831,6 @@ def publish_data():
     if not publish_folder_data or not os.path.exists(publish_folder_data):
         return  # Do nothing if path is empty or doesn't exist
 
-    publish_folder_data = os.path.join(
-        publish_folder_data, "data"
-    )  # Add "data" to the path
     os.makedirs(
         publish_folder_data, exist_ok=True
     )  # Create the directory if it doesn't exist
@@ -857,7 +858,6 @@ def publish_htmls():
     if not publish_folder_html or not os.path.exists(publish_folder_html):
         return  # Do nothing if path is empty or doesn't exist
 
-    publish_folder_html = os.path.join(publish_folder_html, "html")
     os.makedirs(publish_folder_html, exist_ok=True)
 
     pandoc_css_file = config.get("project_pandoc_css_file", "")
@@ -931,7 +931,6 @@ def publish_markdown():
     if not publish_folder_markdown or not os.path.exists(publish_folder_markdown):
         return  # Do nothing if path is empty or doesn't exist
 
-    publish_folder_markdown = os.path.join(publish_folder_markdown, "markdown")
     os.makedirs(publish_folder_markdown, exist_ok=True)
 
     readme_contents = ["# Table of Contents\n"]
@@ -988,9 +987,6 @@ def publish_assignment_pdfs():
     if not publish_folder_pdf or not os.path.exists(publish_folder_pdf):
         return  # Do nothing if path is empty or doesn't exist
 
-    publish_folder_pdf = os.path.join(
-        publish_folder_pdf, "pdf"
-    )  # Add "pdf" to the path
     os.makedirs(
         publish_folder_pdf, exist_ok=True
     )  # Create the directory if it doesn't exist
@@ -1018,9 +1014,6 @@ def publish_pdfs():
     if not publish_folder_pdf or not os.path.exists(publish_folder_pdf):
         return  # Do nothing if path is empty or doesn't exist
 
-    publish_folder_pdf = os.path.join(
-        publish_folder_pdf, "pdf"
-    )  # Add "pdf" to the path
     os.makedirs(
         publish_folder_pdf, exist_ok=True
     )  # Create the directory if it doesn't exist
@@ -1158,7 +1151,7 @@ def run_markdown_lint(folders):
 
 def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
     project_root = config["project_root"].rstrip("/")
-    publish_folder_data = os.path.join(config["publish_folder_data"], "data")
+    publish_folder_data = config["publish_folder_data"]
     data_to_share_links_folder = config["project_data_to_share_links_folder"]
     project_id = config["project_id"]
     access_token = os.getenv(config["dropbox_access_token_variable"])

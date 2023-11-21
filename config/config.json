@@ -15,8 +15,8 @@
     "project_pdf_output_folder": "pdf",
     "project_root": "",
     "project_source_folder": "source",
-    "publish_folder_data": "final_documents",
-    "publish_folder_html": "final_documents",
-    "publish_folder_markdown": "final_documents",
-    "publish_folder_pdf": "final_documents"
+    "publish_folder_data": "final_documents/data",
+    "publish_folder_html": "final_documents/html",
+    "publish_folder_markdown": "final_documents/markdown",
+    "publish_folder_pdf": "final_documents/pdf"
 }
