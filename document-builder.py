@@ -777,6 +777,14 @@ def import_markdown_files(source):
                     settings_file.write(default_yaml)
 
 
+def is_data_to_upload():
+    publish_folder_data = config["publish_folder_data"]
+
+    for file_name in os.listdir(publish_folder_data):
+        if file_name.endswith((".zip", ".gz")):
+            return True
+    return False
+
 def load_config(config_file_path):
     global config
     try:
@@ -1560,10 +1568,13 @@ def main():
             pretty_print_error("Install using 'pip install dropbox'.")
             sys.exit(1)
 
-        pretty_print("Sharing data files using Dropbox...", args.verbose)
-        upload_data_files_to_dropbox_and_set_shareable_links(args.force)
-        # need to reprocess documents that have modified link files
-        folders = get_modified_folders(folders_copy)
+        if is_data_to_upload():
+            pretty_print("Sharing data files using Dropbox...", args.verbose)
+            upload_data_files_to_dropbox_and_set_shareable_links(args.force)
+            # need to reprocess documents that have modified link files
+            folders = get_modified_folders(folders_copy)
+        else:
+            pretty_print("No data files to share", args.verbose)
 
     pretty_print("Copying source folders to Markdown output...", args.verbose)
     copy_source_folders_to_markdown_output(folders)
