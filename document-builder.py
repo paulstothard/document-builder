@@ -474,9 +474,9 @@ def generate_assignment_pdfs(folders):
                 command = ["pandoc", markdown_file, "-o", pdf_file]
                 if os.path.exists(settings_file):
                     command.extend(["--metadata-file", settings_file])
-                if config.get("project_pandoc_pdf_engine"):
+                if config.get("pandoc_pdf_engine"):
                     command.extend(
-                        ["--pdf-engine", config["project_pandoc_pdf_engine"]]
+                        ["--pdf-engine", config["pandoc_pdf_engine"]]
                     )
                 if config.get("project_pandoc_pdf_template"):
                     command.extend(
@@ -509,8 +509,8 @@ def generate_pdfs(folders):
         command = ["pandoc", markdown_file, "-o", pdf_file]
         if os.path.exists(settings_file):
             command.extend(["--metadata-file", settings_file])
-        if config.get("project_pandoc_pdf_engine"):
-            command.extend(["--pdf-engine", config["project_pandoc_pdf_engine"]])
+        if config.get("pandoc_pdf_engine"):
+            command.extend(["--pdf-engine", config["pandoc_pdf_engine"]])
         if config.get("project_pandoc_pdf_template"):
             command.extend(["--template", config["project_pandoc_pdf_template"]])
         if config.get("pandoc_highlight_style"):
