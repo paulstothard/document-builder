@@ -891,7 +891,11 @@ def publish_htmls():
         if folder in document_order
         else float("inf")
     )
+    disallowed_names = ["styles", "index.html", "README.md"]
     for folder_name in folders:
+        if folder_name in disallowed_names:
+            pretty_print_error(f"Skipping document called '{folder_name}'")
+            continue
         source_html_folder = os.path.join(html_output_folder, folder_name)
         if os.path.isdir(source_html_folder):
             destination_html_folder = os.path.join(publish_folder_html, folder_name)
@@ -944,7 +948,11 @@ def publish_markdown():
         if folder in document_order
         else float("inf")
     )
+    disallowed_names = ["styles", "index.html", "README.md"]
     for folder_name in folders:
+        if folder_name in disallowed_names:
+            pretty_print_error(f"Skipping document called '{folder_name}'")
+            continue
         source_markdown_folder = os.path.join(markdown_output_folder, folder_name)
         if os.path.isdir(source_markdown_folder):
             destination_markdown_folder = os.path.join(
