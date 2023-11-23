@@ -260,6 +260,15 @@ figcaption {
     margin-bottom: 2em;
 }
 
+/**
+ * Add border to improve appearance of figures.
+ */
+
+figure img {
+    border: 1px solid lightgray;
+    border-radius: 5px;
+}
+
 /* ==========================================================================
    Forms
    ========================================================================== */

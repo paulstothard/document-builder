@@ -11,9 +11,9 @@ Download the data associated with this tutorial using:
 ```bash
 $ cd ~
 $ wget \
-"https://www.dropbox.com/scl/fi/zinm2jyntqkdurd1xw0\
-kx/another_document.tar.gz?rlkey=qobn8tumbwfmtm61l\
-n6cy5xu5&dl=0" \
+"https://www.dropbox.com/scl/fi/k9if9ho2i8ttb5sq79q\
+0d/another_document.tar.gz?rlkey=9lacq5f6ezcaige02\
+kaglwvv8&dl=0" \
 -O another_document.tar.gz
 $ tar xvzf another_document.tar.gz
 ```

@@ -252,6 +252,23 @@ figure {
     margin: 0;
 }
 
+/**
+ * Add space after caption so it doesn't look like a title for the next figure.
+ */
+
+figcaption {
+    margin-bottom: 2em;
+}
+
+/**
+ * Add border to improve appearance of figures.
+ */
+
+figure img {
+    border: 1px solid lightgray;
+    border-radius: 5px;
+}
+
 /* ==========================================================================
    Forms
    ========================================================================== */
