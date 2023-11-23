@@ -1,5 +1,4 @@
 {
-    "document_order": ["document_one", "document_two", "document_three"],
     "dropbox_access_token_variable": "DROPBOX_TOKEN_ENV_VAR",
     "id": "",
     "pandoc_highlight_style": "zenburn",
@@ -18,5 +17,9 @@
     "publish_folder_data": "final_documents/data",
     "publish_folder_html": "final_documents/html",
     "publish_folder_markdown": "final_documents/markdown",
-    "publish_folder_pdf": "final_documents/pdf"
+    "publish_folder_pdf": "final_documents/pdf",
+    "toc_author": "Your name here",
+    "toc_heading": "Table of Contents",
+    "toc_order": [],
+    "toc_title": "Your document collection title here"
 }

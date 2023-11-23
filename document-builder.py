@@ -35,7 +35,7 @@ except ImportError:
 def check_executables(executables, verbose=False):
     for executable, link in executables.items():
         if shutil.which(executable) is not None:
-                pretty_print(f"{executable} is present", verbose=verbose)
+            pretty_print(f"{executable} is present", verbose=verbose)
         else:
             pretty_print_error(
                 f"{executable} is not present. You can download it from {link}"
@@ -475,9 +475,7 @@ def generate_assignment_pdfs(folders):
                 if os.path.exists(settings_file):
                     command.extend(["--metadata-file", settings_file])
                 if config.get("pandoc_pdf_engine"):
-                    command.extend(
-                        ["--pdf-engine", config["pandoc_pdf_engine"]]
-                    )
+                    command.extend(["--pdf-engine", config["pandoc_pdf_engine"]])
                 if config.get("project_pandoc_pdf_template"):
                     command.extend(
                         ["--template", config["project_pandoc_pdf_template"]]
@@ -686,19 +684,24 @@ def import_markdown_files(source):
                 image_file_name = os.path.basename(match)
 
                 # get the source image file path
-                source_image_file_path = os.path.normpath(os.path.join(os.path.dirname(file_path[0]), match))
+                source_image_file_path = os.path.normpath(
+                    os.path.join(os.path.dirname(file_path[0]), match)
+                )
 
                 # check if the source image file exists
                 if os.path.isfile(source_image_file_path):
-
                     # get the destination image file path
-                    destination_image_file_path = os.path.join(includes_folder_path, image_file_name)
+                    destination_image_file_path = os.path.join(
+                        includes_folder_path, image_file_name
+                    )
 
                     # copy the image file to the destination
                     shutil.copy2(source_image_file_path, destination_image_file_path)
 
                     # replace the image file path in the document.md file
-                    content = content.replace(match, os.path.join("includes", image_file_name))
+                    content = content.replace(
+                        match, os.path.join("includes", image_file_name)
+                    )
 
             # write the new content to the document.md file
             f.seek(0)
@@ -784,6 +787,7 @@ def is_data_to_upload():
             return True
     return False
 
+
 def load_config(config_file_path):
     global config
     try:
@@ -853,8 +857,11 @@ def publish_data():
 
 
 def publish_htmls():
+    publish_folder_markdown = config["publish_folder_markdown"]
     html_output_folder = config["project_html_output_folder"]
     publish_folder_html = config["publish_folder_html"]
+    document_author = config.get("toc_author", "")
+    document_title = config.get("toc_title", "")
 
     if not publish_folder_html or not os.path.exists(publish_folder_html):
         return  # Do nothing if path is empty or doesn't exist
@@ -866,31 +873,8 @@ def publish_htmls():
     os.makedirs(styles_folder, exist_ok=True)
     shutil.copy2(pandoc_css_file, styles_folder)
 
-    css_file_name = os.path.basename(pandoc_css_file)
-    toc_contents = [
-        "<!DOCTYPE html>",
-        '<html lang="en">',
-        "<head>",
-        '<meta charset="UTF-8">',
-        "<title>Table of Contents</title>",
-        f'<link rel="stylesheet" type="text/css" href="styles/{css_file_name}">',
-        "</head>",
-        "<body>",
-        "<header>",
-        "<h1>Table of Contents</h1>",
-        "</header>",
-        "<nav>",
-        "<ul>",
-    ]
-
-    document_order = config.get("document_order", [])
-
     folders = os.listdir(html_output_folder)
-    folders.sort(
-        key=lambda folder: document_order.index(folder)
-        if folder in document_order
-        else float("inf")
-    )
+
     disallowed_names = ["styles", "index.html", "README.md"]
     for folder_name in folders:
         if folder_name in disallowed_names:
@@ -910,11 +894,6 @@ def publish_htmls():
                         source_html_file, destination_html_file, shallow=False
                     ):
                         shutil.copy2(source_html_file, destination_html_file)
-                    if file_name == "document.html":
-                        formatted_folder_name = folder_name.replace("_", " ")
-                        toc_contents.append(
-                            f'<li><a href="{os.path.join(folder_name, file_name)}">{formatted_folder_name}</a></li>'
-                        )
             for folder in ["includes", "styles"]:
                 source_folder = os.path.join(source_html_folder, folder)
                 if os.path.exists(source_folder):
@@ -923,31 +902,65 @@ def publish_htmls():
                         source_folder, destination_folder, dirs_exist_ok=True
                     )
 
-    toc_contents.extend(["</ul>", "</nav>", "</body>", "</html>"])
+    readme_file = os.path.join(publish_folder_markdown, "README.md")
+    html_file = os.path.join(publish_folder_html, "index.html")
 
-    with open(os.path.join(publish_folder_html, "index.html"), "w") as index_file:
-        index_file.write("\n".join(toc_contents))
+    command = [
+        "pandoc",
+        readme_file,
+        "--standalone",
+        "--css",
+        os.path.join("styles", os.path.basename(pandoc_css_file)),
+    ]
+
+    if document_author:
+        command.extend(["-M", f"author={document_author}"])
+    if document_title:
+        command.extend(["-M", f"title={document_title}"])
+
+    command.append("-o")
+    command.append(html_file)
+
+    subprocess.run(command)
+
+    # Read the contents of the index.html file
+    with open(html_file, "r") as file:
+        html_contents = file.read()
+
+    # Replace 'document.md' with 'document.html' within href values
+    html_contents = re.sub(r'href="([^"]*)\.md"', r'href="\1.html"', html_contents)
+
+    # Write the updated contents back to the index.html file
+    with open(html_file, "w") as file:
+        file.write(html_contents)
 
 
 def publish_markdown():
     markdown_output_folder = config["project_markdown_output_folder"]
     publish_folder_markdown = config["publish_folder_markdown"]
 
+    document_order = config.get("toc_order", [])
+    document_heading = config.get("toc_heading", "")
+
     if not publish_folder_markdown or not os.path.exists(publish_folder_markdown):
         return  # Do nothing if path is empty or doesn't exist
 
     os.makedirs(publish_folder_markdown, exist_ok=True)
 
-    readme_contents = ["# Table of Contents\n"]
-
-    document_order = config.get("document_order", [])
+    readme_contents = []
+    if document_heading:
+        readme_contents.append(f"# {document_heading}\n")
 
     folders = os.listdir(markdown_output_folder)
-    folders.sort(
-        key=lambda folder: document_order.index(folder)
-        if folder in document_order
-        else float("inf")
-    )
+    if document_order:
+        folders.sort(
+            key=lambda folder: document_order.index(folder)
+            if folder in document_order
+            else float("inf")
+        )
+    else:
+        folders.sort(key=str.lower)
+    
     disallowed_names = ["styles", "index.html", "README.md"]
     for folder_name in folders:
         if folder_name in disallowed_names:
@@ -1468,8 +1481,11 @@ def main():
         config["project_root"] = base_dir
 
     for key, value in config.items():
-        if isinstance(value, str) and key not in [
-            "document_order",
+        if isinstance(value, str) and key not in [\
+            "toc_author",
+            "toc_heading",
+            "toc_order",
+            "toc_title",
             "pandoc_highlight_style",
             "pandoc_pdf_engine",
         ]:  # Skip keys
