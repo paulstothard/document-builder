@@ -946,6 +946,7 @@ def publish_htmls():
 
 
 def publish_markdown():
+    pdf_output_folder = config["project_pdf_output_folder"]
     include_pdfs_with_markdown_and_html = config.get(
         "include_pdfs_with_markdown_and_html", False
     )
@@ -1025,6 +1026,19 @@ def publish_markdown():
                     os.path.join(destination_markdown_folder, "includes"),
                     dirs_exist_ok=True,
                 )
+
+            if include_pdfs_with_markdown_and_html:
+                source_pdf_folder = os.path.join(pdf_output_folder, folder_name)
+                source_pdf_file = os.path.join(source_pdf_folder, "document.pdf")
+                if os.path.exists(source_pdf_file):
+                    destination_pdf_folder = os.path.join(
+                        destination_markdown_folder, "includes"
+                    )
+                    os.makedirs(destination_pdf_folder, exist_ok=True)
+                    destination_pdf_file = os.path.join(
+                        destination_pdf_folder, "document.pdf"
+                    )
+                    shutil.copy2(source_pdf_file, destination_pdf_file)
 
     with open(os.path.join(publish_folder_markdown, "README.md"), "w") as readme_file:
         readme_file.write("\n".join(readme_contents))
