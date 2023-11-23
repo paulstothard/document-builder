@@ -1,4 +1,4 @@
-# My document heading
+# Heading 1
 
 This is a sample document. It is written in Markdown and will be converted to HTML and PDF using Pandoc.
 
@@ -6,16 +6,16 @@ This is a sample document. It is written in Markdown and will be converted to HT
 echo "Hello World!"
 ```
 
-Download the data associated with this tutorial using:
+Here is a sample image:
+
+![This is a sample image](includes/animation.gif)
+
+Download the data using the following command:
 
 ```bash
 $ cd ~
 $ wget \
 [DATA_DOWNLOAD_LINK] \
--O another_document.tar.gz
-$ tar xvzf another_document.tar.gz
+-O my_document.tar.gz
+$ tar xvzf my_document.tar.gz
 ```
-
-Here is a sample image:
-
-![This is a sample image](includes/figure.png)
