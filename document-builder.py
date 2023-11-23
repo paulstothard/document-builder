@@ -783,7 +783,7 @@ def is_data_to_upload():
     publish_folder_data = config["publish_folder_data"]
 
     for file_name in os.listdir(publish_folder_data):
-        if file_name.endswith((".zip", ".gz")):
+        if file_name.endswith((".tar.gz")):
             return True
     return False
 
@@ -841,14 +841,14 @@ def publish_data():
     )  # Create the directory if it doesn't exist
 
     for file_name in os.listdir(data_output_folder):
-        if file_name.endswith((".zip", ".gz")):
+        if file_name.endswith((".tar.gz")):
             source_data_file = os.path.join(data_output_folder, file_name)
             destination_data_file = os.path.join(publish_folder_data, file_name)
             if not os.path.exists(destination_data_file) or not filecmp.cmp(
                 source_data_file, destination_data_file, shallow=False
             ):
                 shutil.copy2(source_data_file, destination_data_file)
-                file_name_without_extension = os.path.splitext(file_name)[0]
+                file_name_without_extension = file_name.replace('.tar.gz', '')
                 new_file_name = f"{file_name_without_extension}.txt"
                 new_file_path = os.path.join(data_to_share_links_folder, new_file_name)
                 print(
@@ -1234,10 +1234,9 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
 
     dbx = get_dropbox_client(access_token)
 
-    # loop through the .gz and .zip files in publish_folder_data and upload to Dropbox
     file_links = []
     for file_name in os.listdir(publish_folder_data):
-        if file_name.endswith((".zip", ".gz")):
+        if file_name.endswith((".tar.gz")):
             source_data_file = os.path.join(publish_folder_data, file_name)
             destination_data_file = f"/{dropbox_folder_name}/{file_name}"
 

@@ -126,11 +126,11 @@ The `document-builder.py` script generates log files in the `logs` folder, in a 
 
 ## Example output
 
-The `sample-project` folder contains an example project with three sample documents. The final documents generated from the sample project are available in the `sample-project/final_documents` folder.
+See the `sample-project/final_documents` folder for sample output from test data.
 
 ## Assignment mode
 
-Assignment mode (using the `process` command with the `--assignment` option) is used to generate assignment and assignment key PDFs from specially formatted Markdown documents. The `sample-project-assignment` folder contains an example "assignment" project with three sample assignment documents. The final documents generated from the sample project are available in the `sample-project-assignment/final_documents` folder. For assignment projects several PDFs are generated for each input document: a student version of the assignment, an instructor version of the assignment (i.e. with answers), and feedback files (PDFs that provide the answer for a single question).
+Assignment mode (using the `process` command with the `--assignment` option) is used to generate assignment and assignment key PDFs from specially formatted Markdown documents. The `markdown_assignments_for_import` folder contains three sample assignment documents. The final documents generated from these files are available in the `sample-project-assignment/final_documents` folder. For assignment projects several PDFs are generated for each input document: a student version of the assignment, an instructor version of the assignment (i.e. with answers), and feedback files (PDFs that provide the answer for a single question).
 
 To make use of this mode, use the following simple structure for the Markdown documents:
 
@@ -195,7 +195,7 @@ python document-builder.py create -p my_project
 Import Markdown documents from a folder into the project:
 
 ```bash
-python document-builder.py import -c my_project/config/config.json -m sample-import-data
+python document-builder.py import -c my_project/config/config.json -m markdown_for_import
 ```
 
 Copy data files to the `data` and `data_not_tracked` folders as needed and then generate the final documents:
