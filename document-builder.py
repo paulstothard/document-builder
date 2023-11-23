@@ -857,6 +857,8 @@ def publish_data():
 
 
 def publish_htmls():
+    pdf_output_folder = config["project_pdf_output_folder"]
+    publish_pdf_with_html = config.get("publish_pdf_with_html", False)
     publish_folder_markdown = config["publish_folder_markdown"]
     html_output_folder = config["project_html_output_folder"]
     publish_folder_html = config["publish_folder_html"]
@@ -875,11 +877,12 @@ def publish_htmls():
 
     folders = os.listdir(html_output_folder)
 
-    disallowed_names = ["styles", "index.html", "README.md"]
+    disallowed_names = ["styles", "index.html", "README.md", "pdf"]
     for folder_name in folders:
         if folder_name in disallowed_names:
             pretty_print_error(f"Skipping document called '{folder_name}'")
             continue
+
         source_html_folder = os.path.join(html_output_folder, folder_name)
         if os.path.isdir(source_html_folder):
             destination_html_folder = os.path.join(publish_folder_html, folder_name)
@@ -923,19 +926,11 @@ def publish_htmls():
 
     subprocess.run(command)
 
-    # Read the contents of the index.html file
-    with open(html_file, "r") as file:
-        html_contents = file.read()
-
-    # Replace 'document.md' with 'document.html' within href values
-    html_contents = re.sub(r'href="([^"]*)\.md"', r'href="\1.html"', html_contents)
-
-    # Write the updated contents back to the index.html file
-    with open(html_file, "w") as file:
-        file.write(html_contents)
-
 
 def publish_markdown():
+    pdf_output_folder = config["project_pdf_output_folder"]
+    publish_pdf_with_html = config.get("publish_pdf_with_html", False)
+
     markdown_output_folder = config["project_markdown_output_folder"]
     publish_folder_markdown = config["publish_folder_markdown"]
 
@@ -960,8 +955,8 @@ def publish_markdown():
         )
     else:
         folders.sort(key=str.lower)
-    
-    disallowed_names = ["styles", "index.html", "README.md"]
+
+    disallowed_names = ["styles", "index.html", "README.md", "pdf"]
     for folder_name in folders:
         if folder_name in disallowed_names:
             pretty_print_error(f"Skipping document called '{folder_name}'")
@@ -986,9 +981,16 @@ def publish_markdown():
                         shutil.copy2(source_markdown_file, destination_markdown_file)
 
                     formatted_folder_name = folder_name.replace("_", " ")
-                    readme_contents.append(
-                        f"- [{formatted_folder_name}]({os.path.join(folder_name, file_name)})"
-                    )
+                    file_name_without_ext, _ = os.path.splitext(file_name)
+                    if publish_pdf_with_html:
+                        readme_contents.append(
+                            f"- [{formatted_folder_name}]({os.path.join(folder_name, file_name_without_ext + '.html')}) | [PDF]({os.path.join(folder_name, 'includes', file_name_without_ext + '.pdf')})"
+                        )
+                    else:
+                        readme_contents.append(
+                            f"- [{formatted_folder_name}]({os.path.join(folder_name, file_name_without_ext + '.html')})"
+                        )
+
             includes_folder = os.path.join(source_markdown_folder, "includes")
             if os.path.exists(includes_folder):
                 shutil.copytree(
@@ -996,6 +998,19 @@ def publish_markdown():
                     os.path.join(destination_markdown_folder, "includes"),
                     dirs_exist_ok=True,
                 )
+
+            if publish_pdf_with_html:
+                source_pdf_folder = os.path.join(pdf_output_folder, folder_name)
+                source_pdf_file = os.path.join(source_pdf_folder, "document.pdf")
+                if os.path.exists(source_pdf_file):
+                    destination_pdf_folder = os.path.join(
+                        destination_markdown_folder, "includes"
+                    )
+                    os.makedirs(destination_pdf_folder, exist_ok=True)
+                    destination_pdf_file = os.path.join(
+                        destination_pdf_folder, "document.pdf"
+                    )
+                    shutil.copy2(source_pdf_file, destination_pdf_file)
 
     with open(os.path.join(publish_folder_markdown, "README.md"), "w") as readme_file:
         readme_file.write("\n".join(readme_contents))
@@ -1481,7 +1496,8 @@ def main():
         config["project_root"] = base_dir
 
     for key, value in config.items():
-        if isinstance(value, str) and key not in [\
+        if isinstance(value, str) and key not in [
+            "publish_pdf_with_html",
             "toc_author",
             "toc_heading",
             "toc_order",

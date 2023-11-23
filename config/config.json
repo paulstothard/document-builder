@@ -18,6 +18,7 @@
     "publish_folder_html": "final_documents/html",
     "publish_folder_markdown": "final_documents/markdown",
     "publish_folder_pdf": "final_documents/pdf",
+    "publish_pdf_with_html": true,
     "toc_author": "Your name here",
     "toc_heading": "Table of Contents",
     "toc_order": [],
