@@ -1135,24 +1135,25 @@ def replace_data_download_links_in_markdown(folders):
             if os.path.exists(link_file_path):
                 with open(link_file_path, "r") as link_file:
                     link = link_file.read().strip()
-                if "([DATA_DOWNLOAD_LINK])" in content:
-                    content = content.replace("([DATA_DOWNLOAD_LINK])", f"({link})")
-                elif "[DATA_DOWNLOAD_LINK]" in content:
-                    # Split the link into chunks of 50 characters
-                    link_parts = [link[i : i + 50] for i in range(0, len(link), 50)]
-                    # Add a backslash at the end of each line, except for the last line
-                    link = "\n".join(
-                        [
-                            f"{part}\\" if i < len(link_parts) - 1 else f"{part}"
-                            for i, part in enumerate(link_parts)
-                        ]
-                    )
-                    # Add double quotes at the start and end of the link
-                    link = f'"{link}"'
-                    content = content.replace("[DATA_DOWNLOAD_LINK]", link)
-                f.seek(0)
-                f.write(content)
-                f.truncate()
+                if link:  # Check if link is not empty
+                    if "([DATA_DOWNLOAD_LINK])" in content:
+                        content = content.replace("([DATA_DOWNLOAD_LINK])", f"({link})")
+                    elif "[DATA_DOWNLOAD_LINK]" in content:
+                        # Split the link into chunks of 50 characters
+                        link_parts = [link[i : i + 50] for i in range(0, len(link), 50)]
+                        # Add a backslash at the end of each line, except for the last line
+                        link = "\n".join(
+                            [
+                                f"{part}\\" if i < len(link_parts) - 1 else f"{part}"
+                                for i, part in enumerate(link_parts)
+                            ]
+                        )
+                        # Add double quotes at the start and end of the link
+                        link = f'"{link}"'
+                        content = content.replace("[DATA_DOWNLOAD_LINK]", link)
+                    f.seek(0)
+                    f.write(content)
+                    f.truncate()
 
 
 def run_spellchecker(folders):
