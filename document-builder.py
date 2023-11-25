@@ -111,12 +111,17 @@ def copy_and_compress_data_folders(folders):
                 new_file_generated = True
         # create zip file
         if new_file_generated:
-            with zipfile.ZipFile(f"{output_data_folder}.zip", "w", zipfile.ZIP_DEFLATED) as zipf:
+            with zipfile.ZipFile(
+                f"{output_data_folder}.zip", "w", zipfile.ZIP_DEFLATED
+            ) as zipf:
                 for root, _, files in os.walk(output_data_folder):
                     for file in files:
-                        if not file.startswith('.'):  # Exclude hidden files
+                        if not file.startswith("."):  # Exclude hidden files
                             file_path = os.path.join(root, file)
-                            arcname = os.path.join(os.path.basename(output_data_folder), os.path.relpath(file_path, output_data_folder))
+                            arcname = os.path.join(
+                                os.path.basename(output_data_folder),
+                                os.path.relpath(file_path, output_data_folder),
+                            )
                             zipf.write(file_path, arcname=arcname)
 
             shutil.rmtree(output_data_folder)  # Remove the folder after compression
