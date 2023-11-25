@@ -14,7 +14,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tarfile
 import textwrap
 import time
 import uuid
@@ -316,20 +315,21 @@ def generate_assignment_markdown(folders):
                         total_marks += int(match.group(1))
 
         # insert total marks into document.md
-        with open(markdown_file, "r+") as f:
-            lines = f.readlines()
-            f.seek(0)
-            f.truncate()
-            in_code_block = False
-            marks_added = False
-            for line in lines:
-                if line.strip().startswith("```"):
-                    in_code_block = not in_code_block
-                if not in_code_block and line.startswith("#") and not marks_added:
-                    f.write(f"{line.rstrip()} ({total_marks} marks total)\n")
-                    marks_added = True
-                else:
-                    f.write(line)
+        if total_marks != 0: 
+            with open(markdown_file, "r+") as f:
+                lines = f.readlines()
+                f.seek(0)
+                f.truncate()
+                in_code_block = False
+                marks_added = False
+                for line in lines:
+                    if line.strip().startswith("```"):
+                        in_code_block = not in_code_block
+                    if not in_code_block and line.startswith("#") and not marks_added:
+                        f.write(f"{line.rstrip()} ({total_marks} marks total)\n")
+                        marks_added = True
+                    else:
+                        f.write(line)
 
         # create copy of document with answers removed
         with open(markdown_file, "r") as f:
