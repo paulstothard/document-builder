@@ -6,6 +6,7 @@ Author:
 
 import argparse
 from datetime import datetime
+from datetime import timezone
 import filecmp
 import hashlib
 import json
@@ -1253,10 +1254,14 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
                 metadata = dbx.files_get_metadata(destination_data_file)
                 dropbox_file_time = metadata.server_modified
 
-                # Get the creation time of the local file
-                local_file_time = datetime.fromtimestamp(
-                    os.path.getmtime(source_data_file)
-                )
+                # Get the modification time of the local file in local time
+                local_file_time_naive = datetime.fromtimestamp(os.path.getmtime(source_data_file))
+
+                # Convert the local time to UTC
+                local_file_time = local_file_time_naive.astimezone(timezone.utc)
+
+                # Convert dropbox_file_time to an offset-aware datetime object
+                dropbox_file_time = dropbox_file_time.replace(tzinfo=timezone.utc)
 
                 # Compare the modification times
                 if local_file_time > dropbox_file_time or force:
