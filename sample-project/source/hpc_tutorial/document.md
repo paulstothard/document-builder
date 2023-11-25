@@ -67,3 +67,13 @@ $ stretcher -version
 ```
 
 ![Loading a module](includes/2_loading_module.png)
+
+Download some data using the following command:
+
+```bash
+$ cd ~
+$ wget \
+[DATA_DOWNLOAD_LINK] \
+-O hpc_tutorial.zip
+$ unzip hpc_tutorial.zip
+```

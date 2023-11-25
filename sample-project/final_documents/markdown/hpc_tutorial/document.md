@@ -67,3 +67,15 @@ $ stretcher -version
 ```
 
 ![Loading a module](includes/8b34ca6395ccb10c357c9f19a159fbaa.png)
+
+Download some data using the following command:
+
+```bash
+$ cd ~
+$ wget \
+"https://www.dropbox.com/scl/fi/wjaj112epzsntrnqrin\
+3v/hpc_tutorial.zip?rlkey=hkj7obk2o8ewzzfs06sh26fp\
+u&dl=0" \
+-O hpc_tutorial.zip
+$ unzip hpc_tutorial.zip
+```

@@ -13,8 +13,8 @@ Download the data associated with this assignment using:
 $ cd ~
 $ wget \
 [DATA_DOWNLOAD_LINK] \
--O assignment_2.tar.gz
-$ tar xvzf assignment_2.tar.gz
+-O assignment_2.zip
+$ unzip assignment_2.zip
 ```
 
 ## Question 1

@@ -23,6 +23,6 @@ Download the data using the following command:
 $ cd ~
 $ wget \
 [DATA_DOWNLOAD_LINK] \
--O my_document.tar.gz
-$ tar xvzf my_document.tar.gz
+-O my_document.zip
+$ unzip my_document.zip
 ```

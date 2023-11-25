@@ -18,6 +18,7 @@ import tarfile
 import textwrap
 import time
 import uuid
+import zipfile
 
 required_major = 3
 required_minor = 8
@@ -108,12 +109,15 @@ def copy_and_compress_data_folders(folders):
                             dirs_exist_ok=True,
                         )
                 new_file_generated = True
-
+        # create zip file
         if new_file_generated:
-            with tarfile.open(f"{output_data_folder}.tar.gz", "w:gz") as tar:
-                tar.add(
-                    output_data_folder, arcname=os.path.basename(output_data_folder)
-                )
+            with zipfile.ZipFile(f"{output_data_folder}.zip", "w", zipfile.ZIP_DEFLATED) as zipf:
+                for root, _, files in os.walk(output_data_folder):
+                    for file in files:
+                        if not file.startswith('.'):  # Exclude hidden files
+                            file_path = os.path.join(root, file)
+                            arcname = os.path.join(os.path.basename(output_data_folder), os.path.relpath(file_path, output_data_folder))
+                            zipf.write(file_path, arcname=arcname)
 
             shutil.rmtree(output_data_folder)  # Remove the folder after compression
 
@@ -149,11 +153,9 @@ def create_link_files(folders):
     os.makedirs(data_to_share_links_folder, exist_ok=True)
 
     for folder in folders:
-        item_path = os.path.join(data_output_folder, f"{folder}.tar.gz")
+        item_path = os.path.join(data_output_folder, f"{folder}.zip")
         if os.path.exists(item_path):
-            base_name = os.path.splitext(os.path.splitext(folder)[0])[
-                0
-            ]  # Remove all extensions
+            base_name = os.path.splitext(folder)[0]  # Remove one extension
             link_file_path = os.path.join(
                 data_to_share_links_folder, f"{base_name}.txt"
             )
@@ -783,7 +785,7 @@ def is_data_to_upload():
     publish_folder_data = config["publish_folder_data"]
 
     for file_name in os.listdir(publish_folder_data):
-        if file_name.endswith((".tar.gz")):
+        if file_name.endswith((".zip")):
             return True
     return False
 
@@ -841,14 +843,14 @@ def publish_data():
     )  # Create the directory if it doesn't exist
 
     for file_name in os.listdir(data_output_folder):
-        if file_name.endswith((".tar.gz")):
+        if file_name.endswith((".zip")):
             source_data_file = os.path.join(data_output_folder, file_name)
             destination_data_file = os.path.join(publish_folder_data, file_name)
             if not os.path.exists(destination_data_file) or not filecmp.cmp(
                 source_data_file, destination_data_file, shallow=False
             ):
                 shutil.copy2(source_data_file, destination_data_file)
-                file_name_without_extension = file_name.replace('.tar.gz', '')
+                file_name_without_extension, _ = os.path.splitext(file_name)
                 new_file_name = f"{file_name_without_extension}.txt"
                 new_file_path = os.path.join(data_to_share_links_folder, new_file_name)
                 print(
@@ -1237,7 +1239,7 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
 
     file_links = []
     for file_name in os.listdir(publish_folder_data):
-        if file_name.endswith((".tar.gz")):
+        if file_name.endswith((".zip")):
             source_data_file = os.path.join(publish_folder_data, file_name)
             destination_data_file = f"/{dropbox_folder_name}/{file_name}"
 
@@ -1298,10 +1300,7 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
 
     # loop through the file_links list and write the sharable link to the corresponding file in data_to_share_links_folder
     for file_link in file_links:
-        # Regex to remove double extensions like .tar.gz or single extension
-        file_name_without_extension = re.sub(
-            r"(\.tar\.gz|\.tar\.bz2|\.tar\.xz|\.[^.]+)$", "", file_link[0]
-        )
+        file_name_without_extension, _ = os.path.splitext(file_link[0])
         new_file_name = f"{file_name_without_extension}.txt"
         file_path = os.path.join(data_to_share_links_folder, new_file_name)
 
