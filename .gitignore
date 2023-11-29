@@ -1,5 +1,6 @@
 .DS_Store
 *.code-workspace
+.vscode/
 /sample-project/*
 !/sample-project/source/
 !/sample-project/final_documents/
