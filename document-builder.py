@@ -1274,12 +1274,26 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
             except (dropbox.exceptions.ApiError, FileNotFoundError):
                 # If the file does not exist on Dropbox or local file is newer, upload it
                 pretty_print(f"Uploading {file_name} to Dropbox...", True)
+                CHUNK_SIZE = 4 * 1024 * 1024  # 4MB
+
                 with open(source_data_file, "rb") as f:
-                    dbx.files_upload(
-                        f.read(),
-                        destination_data_file,
-                        mode=dropbox.files.WriteMode("overwrite"),
-                    )
+                    file_size = os.path.getsize(source_data_file)
+                    if file_size <= CHUNK_SIZE:
+                        dbx.files_upload(f.read(), destination_data_file, mode=dropbox.files.WriteMode("overwrite"))
+                    else:
+                        upload_session_start_result = dbx.files_upload_session_start(f.read(CHUNK_SIZE))
+                        cursor = dropbox.files.UploadSessionCursor(
+                            session_id=upload_session_start_result.session_id,
+                            offset=f.tell()
+                        )
+                        commit = dropbox.files.CommitInfo(path=destination_data_file, mode=dropbox.files.WriteMode("overwrite"))
+
+                        while f.tell() < file_size:
+                            if (file_size - f.tell()) <= CHUNK_SIZE:
+                                dbx.files_upload_session_finish(f.read(file_size - f.tell()), cursor, commit)
+                            else:
+                                dbx.files_upload_session_append_v2(f.read(CHUNK_SIZE), cursor)
+                                cursor.offset = f.tell()
 
                 # Create a shareable link for the file
                 try:
@@ -1632,9 +1646,9 @@ def main():
     pretty_print("Copying and compressing data folders...", args.verbose)
 
     if hasattr(args, "force") and args.force:
-        copy_and_compress_data_folders(folders)
+        copy_and_compress_data_folders(folders_copy)
     else:
-        copy_and_compress_data_folders(get_modified_data_folders(folders))
+        copy_and_compress_data_folders(get_modified_data_folders(folders_copy))
 
     pretty_print("Publishing data...", args.verbose)
     publish_data()
