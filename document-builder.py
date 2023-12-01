@@ -1697,14 +1697,17 @@ def main():
         import_markdown_files(args.markdown)
         sys.exit(0)
 
-    if not (hasattr(args, "force") and args.force):
-        folders = get_modified_folders(folders)
-
-    pretty_print("Copying and compressing data folders...", args.verbose)
+    if hasattr(args, "force") and args.force:
+        pretty_print("Forcing reprocessing of all documents...", args.verbose)
+    else:
+        pretty_print("Checking for modified documents...", args.verbose)
+        folders = get_modified_folders(folders) 
 
     if hasattr(args, "force") and args.force:
+        pretty_print("Copying and compressing all data folders...", args.verbose)
         copy_and_compress_data_folders(folders_copy)
     else:
+        pretty_print("Copying and compressing modified data folders...", args.verbose)
         copy_and_compress_data_folders(get_modified_data_folders(folders_copy))
 
     pretty_print("Publishing data...", args.verbose)
@@ -1722,8 +1725,10 @@ def main():
         if is_data_to_upload():
             pretty_print("Sharing data files using Dropbox...", args.verbose)
             upload_data_files_to_dropbox_and_set_shareable_links(args.force)
-            # need to reprocess documents that have modified link files
-            folders = get_modified_folders(folders_copy)
+
+            if not (hasattr(args, "force") and args.force):
+                # need to reprocess documents that have modified link files
+                folders = get_modified_folders(folders_copy)
         else:
             pretty_print("No data files to share", args.verbose)
 
