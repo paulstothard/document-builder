@@ -109,8 +109,15 @@ def copy_and_compress_data_folders(folders):
                             dirs_exist_ok=True,
                         )
                 new_file_generated = True
-        # create zip file
+
         if new_file_generated:
+            license_markdown = get_license_as_markdown()
+            if license_markdown != "" and not os.path.exists(
+                os.path.join(output_data_folder, "license.md")
+            ):
+                with open(os.path.join(output_data_folder, "license.md"), "w") as f:
+                    f.write(license_markdown + "\n")
+
             with zipfile.ZipFile(
                 f"{output_data_folder}.zip", "w", zipfile.ZIP_DEFLATED
             ) as zipf:
@@ -316,7 +323,7 @@ def generate_assignment_markdown(folders):
                         total_marks += int(match.group(1))
 
         # insert total marks into document.md
-        if total_marks != 0: 
+        if total_marks != 0:
             with open(markdown_file, "r+") as f:
                 lines = f.readlines()
                 f.seek(0)
@@ -419,6 +426,46 @@ def generate_assignment_markdown(folders):
                 os.path.join(markdown_output_folder, folder, "document_to_share.md"),
                 markdown_file,
             )
+            license_markdown = get_license_as_markdown()
+            if license_markdown != "":
+                with open(markdown_file, "a") as f:
+                    f.write("\n" + license_markdown + "\n")
+
+
+def generate_assignment_pdfs(folders):
+    markdown_output_folder = config["project_markdown_output_folder"]
+    pdf_output_folder = config["project_pdf_output_folder"]
+    source_folder = config["project_source_folder"]
+
+    for folder in folders:
+        folder_path = os.path.join(markdown_output_folder, folder)
+        for file in os.listdir(folder_path):
+            if file.endswith(".md"):
+                markdown_file = os.path.join(folder_path, file)
+                pdf_folder = os.path.join(pdf_output_folder, folder)
+                os.makedirs(pdf_folder, exist_ok=True)
+                pdf_file = os.path.join(pdf_folder, file.replace(".md", ".pdf"))
+                settings_file = os.path.join(source_folder, folder, "settings.yaml")
+
+                command = ["pandoc", markdown_file, "-o", pdf_file]
+                if os.path.exists(settings_file):
+                    command.extend(["--metadata-file", settings_file])
+                if config.get("pandoc_pdf_engine"):
+                    command.extend(["--pdf-engine", config["pandoc_pdf_engine"]])
+                if config.get("project_pandoc_pdf_template"):
+                    command.extend(
+                        ["--template", config["project_pandoc_pdf_template"]]
+                    )
+                if config.get("pandoc_highlight_style"):
+                    command.extend(
+                        ["--highlight-style", config["pandoc_highlight_style"]]
+                    )
+                if config.get("project_pandoc_latex_header"):
+                    command.extend(["-H", config["project_pandoc_latex_header"]])
+                command.extend(
+                    ["--resource-path", os.path.join(markdown_output_folder, folder)]
+                )
+                subprocess.run(command)
 
 
 def generate_htmls(folders):
@@ -464,40 +511,16 @@ def generate_htmls(folders):
         subprocess.run(command)
 
 
-def generate_assignment_pdfs(folders):
+def generate_markdown(folders):
     markdown_output_folder = config["project_markdown_output_folder"]
-    pdf_output_folder = config["project_pdf_output_folder"]
-    source_folder = config["project_source_folder"]
 
     for folder in folders:
-        folder_path = os.path.join(markdown_output_folder, folder)
-        for file in os.listdir(folder_path):
-            if file.endswith(".md"):
-                markdown_file = os.path.join(folder_path, file)
-                pdf_folder = os.path.join(pdf_output_folder, folder)
-                os.makedirs(pdf_folder, exist_ok=True)
-                pdf_file = os.path.join(pdf_folder, file.replace(".md", ".pdf"))
-                settings_file = os.path.join(source_folder, folder, "settings.yaml")
+        markdown_file = os.path.join(markdown_output_folder, folder, "document.md")
 
-                command = ["pandoc", markdown_file, "-o", pdf_file]
-                if os.path.exists(settings_file):
-                    command.extend(["--metadata-file", settings_file])
-                if config.get("pandoc_pdf_engine"):
-                    command.extend(["--pdf-engine", config["pandoc_pdf_engine"]])
-                if config.get("project_pandoc_pdf_template"):
-                    command.extend(
-                        ["--template", config["project_pandoc_pdf_template"]]
-                    )
-                if config.get("pandoc_highlight_style"):
-                    command.extend(
-                        ["--highlight-style", config["pandoc_highlight_style"]]
-                    )
-                if config.get("project_pandoc_latex_header"):
-                    command.extend(["-H", config["project_pandoc_latex_header"]])
-                command.extend(
-                    ["--resource-path", os.path.join(markdown_output_folder, folder)]
-                )
-                subprocess.run(command)
+        license_markdown = get_license_as_markdown()
+        if license_markdown != "":
+            with open(markdown_file, "a") as f:
+                f.write("\n" + license_markdown + "\n")
 
 
 def generate_pdfs(folders):
@@ -561,6 +584,20 @@ def get_folders_list(source_folder):
         for name in os.listdir(source_folder)
         if os.path.isdir(os.path.join(source_folder, name))
     ]
+
+
+def get_license_as_markdown():
+    license_link_text = config.get("license_link_text")
+    license_link_url = config.get("license_link_url")
+    license_pre_link_text = config.get("license_pre_link_text")
+    if license_link_text and license_link_url and license_pre_link_text:
+        return f"{license_pre_link_text} [{license_link_text}]({license_link_url})"
+    elif license_link_text and license_link_url:
+        return f"[{license_link_text}]({license_link_url})"
+    elif license_pre_link_text:
+        return license_pre_link_text
+    else:
+        return ""
 
 
 def get_modified_data_folders(folders):
@@ -836,6 +873,33 @@ def prompt_yes_no(message, default=None):
             print("Please respond with 'yes' or 'no' (or 'y' or 'n').")
 
 
+def publish_assignment_pdfs():
+    pdf_output_folder = config["project_pdf_output_folder"]
+    publish_folder_pdf = config["publish_folder_pdf"]
+
+    if not publish_folder_pdf or not os.path.exists(publish_folder_pdf):
+        return  # Do nothing if path is empty or doesn't exist
+
+    os.makedirs(
+        publish_folder_pdf, exist_ok=True
+    )  # Create the directory if it doesn't exist
+
+    for folder_name in os.listdir(pdf_output_folder):
+        source_pdf_folder = os.path.join(pdf_output_folder, folder_name)
+        if os.path.isdir(source_pdf_folder):
+            for file_name in os.listdir(source_pdf_folder):
+                if file_name.endswith(".pdf"):
+                    source_pdf_file = os.path.join(source_pdf_folder, file_name)
+                    new_file_name = file_name.replace("document", folder_name)
+                    destination_pdf_file = os.path.join(
+                        publish_folder_pdf, new_file_name
+                    )
+                    if not os.path.exists(destination_pdf_file) or not filecmp.cmp(
+                        source_pdf_file, destination_pdf_file, shallow=False
+                    ):
+                        shutil.copy2(source_pdf_file, destination_pdf_file)
+
+
 def publish_data():
     data_output_folder = config["project_data_output_folder"]
     publish_folder_data = config["publish_folder_data"]
@@ -1048,40 +1112,18 @@ def publish_markdown():
                     )
                     shutil.copy2(source_pdf_file, destination_pdf_file)
 
+    license_markdown = get_license_as_markdown()
     with open(os.path.join(publish_folder_markdown, "README.md"), "w") as readme_file:
         readme_file.write("\n".join(readme_contents))
-        readme_file.write("\n")  # Add a blank line at the end
+        readme_file.write("\n")
+        if license_markdown != "":
+            readme_file.write("\n" + license_markdown + "\n")
 
     with open(os.path.join(publish_folder_markdown, "index.md"), "w") as index_file:
         index_file.write("\n".join(index_contents))
-        index_file.write("\n")  # Add a blank line at the end
-
-
-def publish_assignment_pdfs():
-    pdf_output_folder = config["project_pdf_output_folder"]
-    publish_folder_pdf = config["publish_folder_pdf"]
-
-    if not publish_folder_pdf or not os.path.exists(publish_folder_pdf):
-        return  # Do nothing if path is empty or doesn't exist
-
-    os.makedirs(
-        publish_folder_pdf, exist_ok=True
-    )  # Create the directory if it doesn't exist
-
-    for folder_name in os.listdir(pdf_output_folder):
-        source_pdf_folder = os.path.join(pdf_output_folder, folder_name)
-        if os.path.isdir(source_pdf_folder):
-            for file_name in os.listdir(source_pdf_folder):
-                if file_name.endswith(".pdf"):
-                    source_pdf_file = os.path.join(source_pdf_folder, file_name)
-                    new_file_name = file_name.replace("document", folder_name)
-                    destination_pdf_file = os.path.join(
-                        publish_folder_pdf, new_file_name
-                    )
-                    if not os.path.exists(destination_pdf_file) or not filecmp.cmp(
-                        source_pdf_file, destination_pdf_file, shallow=False
-                    ):
-                        shutil.copy2(source_pdf_file, destination_pdf_file)
+        index_file.write("\n")
+        if license_markdown != "":
+            index_file.write("\n" + license_markdown + "\n")
 
 
 def publish_pdfs():
@@ -1255,7 +1297,9 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
                 dropbox_file_time = metadata.server_modified
 
                 # Get the modification time of the local file in local time
-                local_file_time_naive = datetime.fromtimestamp(os.path.getmtime(source_data_file))
+                local_file_time_naive = datetime.fromtimestamp(
+                    os.path.getmtime(source_data_file)
+                )
 
                 # Convert the local time to UTC
                 local_file_time = local_file_time_naive.astimezone(timezone.utc)
@@ -1279,20 +1323,33 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
                 with open(source_data_file, "rb") as f:
                     file_size = os.path.getsize(source_data_file)
                     if file_size <= CHUNK_SIZE:
-                        dbx.files_upload(f.read(), destination_data_file, mode=dropbox.files.WriteMode("overwrite"))
+                        dbx.files_upload(
+                            f.read(),
+                            destination_data_file,
+                            mode=dropbox.files.WriteMode("overwrite"),
+                        )
                     else:
-                        upload_session_start_result = dbx.files_upload_session_start(f.read(CHUNK_SIZE))
+                        upload_session_start_result = dbx.files_upload_session_start(
+                            f.read(CHUNK_SIZE)
+                        )
                         cursor = dropbox.files.UploadSessionCursor(
                             session_id=upload_session_start_result.session_id,
-                            offset=f.tell()
+                            offset=f.tell(),
                         )
-                        commit = dropbox.files.CommitInfo(path=destination_data_file, mode=dropbox.files.WriteMode("overwrite"))
+                        commit = dropbox.files.CommitInfo(
+                            path=destination_data_file,
+                            mode=dropbox.files.WriteMode("overwrite"),
+                        )
 
                         while f.tell() < file_size:
                             if (file_size - f.tell()) <= CHUNK_SIZE:
-                                dbx.files_upload_session_finish(f.read(file_size - f.tell()), cursor, commit)
+                                dbx.files_upload_session_finish(
+                                    f.read(file_size - f.tell()), cursor, commit
+                                )
                             else:
-                                dbx.files_upload_session_append_v2(f.read(CHUNK_SIZE), cursor)
+                                dbx.files_upload_session_append_v2(
+                                    f.read(CHUNK_SIZE), cursor
+                                )
                                 cursor.offset = f.tell()
 
                 # Create a shareable link for the file
@@ -1711,6 +1768,9 @@ def main():
         pretty_print("🎉🎉🎉   Done.", args.verbose)
 
         sys.exit(0)
+
+    pretty_print("Generating new Markdown...", args.verbose)
+    generate_markdown(folders)
 
     pretty_print("Generating PDFs...", args.verbose)
     generate_pdfs(folders)

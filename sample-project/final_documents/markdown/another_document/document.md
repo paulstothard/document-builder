@@ -15,9 +15,10 @@ Download the data using the following command:
 ```bash
 $ cd ~
 $ wget \
-"https://www.dropbox.com/scl/fi/krmlju6nqo9172gtr17\
-tp/another_document.zip?rlkey=9jn93zklrd1rusmqz3gz\
-vwhex&dl=0" \
+"https://www.dropbox.com/scl/fi/f8w1yk5kfb3rp2bdymj17/another_document.zip?rlkey=\
+1t753lrqlzqb2hpv3a0p0dvpx&dl=0" \
 -O my_document.zip
 $ unzip my_document.zip
 ```
+
+Licensed under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)

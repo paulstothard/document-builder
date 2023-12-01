@@ -115,3 +115,5 @@ The resulting plot (click the **Plots** pane if the plot isn't visible) shows th
 To save a plot click **Export** in the **Plots** pane. The PDF or image file can then be downloaded in the **Files** pane using **More** -> **Export...** and then **Download**.
 
 ![UpSet plot showing overlaps among SNP lists](includes/980b466dcdaacfed2b1e411697b46c14.png)
+
+Licensed under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)

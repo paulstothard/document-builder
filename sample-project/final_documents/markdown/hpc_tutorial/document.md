@@ -73,9 +73,10 @@ Download some data using the following command:
 ```bash
 $ cd ~
 $ wget \
-"https://www.dropbox.com/scl/fi/wjaj112epzsntrnqrin\
-3v/hpc_tutorial.zip?rlkey=hkj7obk2o8ewzzfs06sh26fp\
-u&dl=0" \
+"https://www.dropbox.com/scl/fi/5xlcbo077xr4ct5uo0bje/hpc_tutorial.zip?rlkey=graq\
+a6rgb9j45fn79bay3mirb&dl=0" \
 -O hpc_tutorial.zip
 $ unzip hpc_tutorial.zip
 ```
+
+Licensed under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)

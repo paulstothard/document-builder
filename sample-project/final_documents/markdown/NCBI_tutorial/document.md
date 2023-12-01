@@ -21,3 +21,5 @@
 ## A link to a random photo
 
 ![A random photo](https://picsum.photos/200/300)
+
+Licensed under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)
