@@ -15,8 +15,7 @@ Download the data using the following command:
 ```bash
 $ cd ~
 $ wget \
-"https://www.dropbox.com/scl/fi/f8w1yk5kfb3rp2bdymj17/another_document.zip?rlkey=\
-1t753lrqlzqb2hpv3a0p0dvpx&dl=0" \
+[DATA_DOWNLOAD_LINK] \
 -O my_document.zip
 $ unzip my_document.zip
 ```
