@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+
+# Define the path to the virtual environment relative to the script
+VENV_PATH="./venv"
+
+# Check if the virtual environment exists
+if [ -d "$VENV_PATH" ]; then
+    echo "Activating virtual environment..."
+    source "$VENV_PATH/bin/activate"
+else
+    echo "Virtual environment not found. Using system Python."
+fi
+
 printf "Creating 'sample-project'\n"
 rm -rf sample-project
 python3 document-builder.py create -p sample-project -v
@@ -33,3 +45,8 @@ python3 document-builder.py dropbox -c sample-project-assignment/config/config.j
 
 printf "Updating 'sample-project-assignment' using '--assignment' flag\n"
 python3 document-builder.py dropbox -c sample-project-assignment/config/config.json -a -v
+
+# Deactivate virtual environment if it was activated
+if [ -d "$VENV_PATH" ]; then
+    deactivate
+fi

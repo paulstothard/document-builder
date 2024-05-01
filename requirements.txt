@@ -1,0 +1,10 @@
+certifi==2024.2.2
+charset-normalizer==3.3.2
+dropbox==11.36.2
+idna==3.7
+ply==3.11
+requests==2.31.0
+setuptools==69.5.1
+six==1.16.0
+stone==3.3.3
+urllib3==2.2.1

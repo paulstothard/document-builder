@@ -10,3 +10,4 @@
 /sample-project-assignment/*
 !/sample-project-assignment/source/
 !/sample-project-assignment/final_documents/
+venv
