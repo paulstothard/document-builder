@@ -553,30 +553,24 @@ def generate_pdfs(folders):
 
 
 def get_dropbox_client(access_token):
-    dbx = dropbox.Dropbox(access_token)
-    try:
-        # Try to get account info
-        dbx.users_get_current_account()
-    except AuthError:
-        # If an AuthError is raised, the access token is invalid or expired
-        pretty_print_error(
-            "The access token is invalid or expired. Retrieve a new access token from the Dropbox App Console and enter it below, or enter 'q' to quit."
-        )
-        access_token = input("Enter the new access token or 'q' to quit: ")
-        if access_token.lower() == "q":
-            sys.exit(0)
+    while True:
+        if not access_token:
+            pretty_print_error("Dropbox access token not set.")
+            access_token = input("Enter the new access token or 'q' to quit: ")
+            if access_token.lower() == "q":
+                sys.exit(0)
+
         dbx = dropbox.Dropbox(access_token)
         try:
-            # Try to get account info with the new access token
+            # Try to get account info
             dbx.users_get_current_account()
+            return dbx
         except AuthError:
-            # If an AuthError is raised again, the new access token is also invalid or expired
+            # If an AuthError is raised, the access token is invalid or expired
             pretty_print_error(
-                "The new access token is invalid or expired. Exiting the program."
+                "The access token is invalid or expired. Retrieve a new access token from the Dropbox App Console and enter it below, or enter 'q' to quit."
             )
-            sys.exit(1)
-    return dbx
-
+            access_token = None  # Reset access_token to prompt user input
 
 def get_folders_list(source_folder):
     return [
