@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Author: 
+Author:
     Paul Stothard
 """
 
@@ -151,12 +151,20 @@ def copy_source_folders_to_markdown_output(folders):
             os.path.join(source_folder_path, "document.md"), markdown_output_folder
         )
 
-        # Copy includes folder
-        shutil.copytree(
-            os.path.join(source_folder_path, "includes"),
-            os.path.join(markdown_output_folder, "includes"),
-            dirs_exist_ok=True,
-        )
+        # Check if the includes folder exists in the source folder
+        includes_source_path = os.path.join(source_folder_path, "includes")
+        includes_output_path = os.path.join(markdown_output_folder, "includes")
+
+        if os.path.exists(includes_source_path) and os.path.isdir(includes_source_path):
+            # Copy includes folder if it exists
+            shutil.copytree(
+                includes_source_path,
+                includes_output_path,
+                dirs_exist_ok=True,
+            )
+        else:
+            # Create an empty includes folder in the markdown output if it doesn't exist
+            os.makedirs(includes_output_path, exist_ok=True)
 
 
 def create_link_files(folders):
@@ -571,6 +579,7 @@ def get_dropbox_client(access_token):
                 "The access token is invalid or expired. Retrieve a new access token from the Dropbox App Console and enter it below, or enter 'q' to quit."
             )
             access_token = None  # Reset access_token to prompt user input
+
 
 def get_folders_list(source_folder):
     return [
@@ -1037,9 +1046,11 @@ def publish_markdown():
     folders = os.listdir(markdown_output_folder)
     if document_order:
         folders.sort(
-            key=lambda folder: document_order.index(folder)
-            if folder in document_order
-            else float("inf")
+            key=lambda folder: (
+                document_order.index(folder)
+                if folder in document_order
+                else float("inf")
+            )
         )
     else:
         folders.sort(key=str.lower)
@@ -1695,7 +1706,7 @@ def main():
         pretty_print("Forcing reprocessing of all documents...", args.verbose)
     else:
         pretty_print("Checking for modified documents...", args.verbose)
-        folders = get_modified_folders(folders) 
+        folders = get_modified_folders(folders)
 
     if hasattr(args, "force") and args.force:
         pretty_print("Copying and compressing all data folders...", args.verbose)
