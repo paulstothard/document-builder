@@ -624,13 +624,19 @@ def get_modified_data_folders(folders):
             )
             if os.path.exists(source_folder):
                 for root, dirs, files in os.walk(source_folder):
+                    # Check if any files were modified or deleted
                     for file in files:
                         file_path = os.path.join(root, file)
                         if os.path.getmtime(file_path) > timestamp:
                             if folder not in modified_folders:
                                 modified_folders.append(folder)
                             break
-
+                    # Check for deleted files in the previous run
+                    for filename in os.listdir(folder_log_folder):
+                        old_file_path = os.path.join(root, filename)
+                        if not os.path.exists(old_file_path):
+                            modified_folders.append(folder)
+                            break
     return modified_folders
 
 
