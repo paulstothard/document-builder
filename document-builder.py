@@ -273,7 +273,7 @@ def create_project(folder_path, include_example_documents=False):
     pretty_print("Project created successfully.")
 
 
-def create_timestamp_files(folders):
+def create_timestamp_files_and_file_lists(folders):
     build_logs_folder = config["project_build_logs_folder"]
 
     for folder in folders:
@@ -282,6 +282,24 @@ def create_timestamp_files(folders):
         timestamp_file = os.path.join(folder_log_folder, "timestamp.txt")
         with open(timestamp_file, "w") as f:
             f.write(str(time.time()))
+
+        # Store the list of files in data folders
+        file_list_file = os.path.join(folder_log_folder, "file_list.txt")
+        files_in_data = []
+        for subfolder in ["data", "data_not_tracked"]:
+            source_folder = os.path.join(
+                config["project_source_folder"], folder, subfolder
+            )
+            if os.path.exists(source_folder):
+                for root, _, files in os.walk(source_folder):
+                    for file in files:
+                        file_path = os.path.relpath(
+                            os.path.join(root, file), start=source_folder
+                        )
+                        files_in_data.append(file_path)
+        with open(file_list_file, "w") as f:
+            for file_path in files_in_data:
+                f.write(f"{file_path}\n")
 
 
 def edit_markdown_includes(folders):
@@ -610,6 +628,7 @@ def get_modified_data_folders(folders):
     for folder in folders:
         folder_log_folder = os.path.join(build_logs_folder, folder)
         timestamp_file = os.path.join(folder_log_folder, "timestamp.txt")
+        file_list_file = os.path.join(folder_log_folder, "file_list.txt")
 
         if os.path.exists(timestamp_file):
             with open(timestamp_file, "r") as f:
@@ -618,25 +637,35 @@ def get_modified_data_folders(folders):
             modified_folders.append(folder)
             continue
 
+        previous_files = set()
+        if os.path.exists(file_list_file):
+            with open(file_list_file, "r") as f:
+                for line in f:
+                    previous_files.add(line.strip())
+        else:
+            modified_folders.append(folder)
+            continue
+
+        current_files = set()
+        folder_modified = False
         for subfolder in ["data", "data_not_tracked"]:
             source_folder = os.path.join(
                 config["project_source_folder"], folder, subfolder
             )
             if os.path.exists(source_folder):
-                for root, dirs, files in os.walk(source_folder):
-                    # Check if any files were modified or deleted
+                for root, _, files in os.walk(source_folder):
                     for file in files:
-                        file_path = os.path.join(root, file)
-                        if os.path.getmtime(file_path) > timestamp:
-                            if folder not in modified_folders:
-                                modified_folders.append(folder)
-                            break
-                    # Check for deleted files in the previous run
-                    for filename in os.listdir(folder_log_folder):
-                        old_file_path = os.path.join(root, filename)
-                        if not os.path.exists(old_file_path):
-                            modified_folders.append(folder)
-                            break
+                        file_path = os.path.relpath(
+                            os.path.join(root, file), start=source_folder
+                        )
+                        current_files.add(file_path)
+                        full_file_path = os.path.join(root, file)
+                        if os.path.getmtime(full_file_path) > timestamp:
+                            folder_modified = True
+
+        if previous_files != current_files or folder_modified:
+            if folder not in modified_folders:
+                modified_folders.append(folder)
     return modified_folders
 
 
@@ -1778,8 +1807,8 @@ def main():
         pretty_print("Publishing PDFs...", args.verbose)
         publish_assignment_pdfs()
 
-        pretty_print("Creating timestamp files...", args.verbose)
-        create_timestamp_files(folders)
+        pretty_print("Creating timestamp and file list files...", args.verbose)
+        create_timestamp_files_and_file_lists(folders)
 
         pretty_print("🎉🎉🎉   Done.", args.verbose)
 
@@ -1806,8 +1835,8 @@ def main():
     pretty_print("Publishing HTMLs...", args.verbose)
     publish_htmls()
 
-    pretty_print("Creating timestamp files...", args.verbose)
-    create_timestamp_files(folders)
+    pretty_print("Creating timestamp and file list files...", args.verbose)
+    create_timestamp_files_and_file_lists(folders)
 
     pretty_print("🎉🎉🎉   Done.", args.verbose)
 
