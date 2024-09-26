@@ -287,7 +287,6 @@ def create_timestamp_files_and_file_lists(folders):
         with open(timestamp_file, "w") as f:
             f.write(str(time.time()))
 
-<<<<<<< HEAD
         # Generate the file list
         file_list_file = os.path.join(folder_log_folder, "file_list.txt")
         files_in_folder = []
@@ -318,24 +317,6 @@ def create_timestamp_files_and_file_lists(folders):
         # Write the file list to file_list.txt
         with open(file_list_file, "w") as f:
             for file_path in files_in_folder:
-=======
-        # Store the list of files in data folders
-        file_list_file = os.path.join(folder_log_folder, "file_list.txt")
-        files_in_data = []
-        for subfolder in ["data", "data_not_tracked"]:
-            source_folder = os.path.join(
-                config["project_source_folder"], folder, subfolder
-            )
-            if os.path.exists(source_folder):
-                for root, _, files in os.walk(source_folder):
-                    for file in files:
-                        file_path = os.path.relpath(
-                            os.path.join(root, file), start=source_folder
-                        )
-                        files_in_data.append(file_path)
-        with open(file_list_file, "w") as f:
-            for file_path in files_in_data:
->>>>>>> e7601d8d8452c0757b95e88a54c976cb4794bc1d
                 f.write(f"{file_path}\n")
 
 
@@ -673,7 +654,6 @@ def get_modified_data_folders(folders):
             modified_folders.append(folder)
             continue
 
-<<<<<<< HEAD
         # Read the timestamp
         with open(timestamp_file, "r") as f:
             timestamp = float(f.read())
@@ -717,33 +697,6 @@ def get_modified_data_folders(folders):
         # Compare the current and previous data files
         if current_data_files != previous_data_files or folder_modified:
             modified_folders.append(folder)
-=======
-        previous_files = set()
-        if os.path.exists(file_list_file):
-            with open(file_list_file, "r") as f:
-                for line in f:
-                    previous_files.add(line.strip())
-        else:
-            modified_folders.append(folder)
-            continue
-
-        current_files = set()
-        folder_modified = False
-        for subfolder in ["data", "data_not_tracked"]:
-            source_folder = os.path.join(
-                config["project_source_folder"], folder, subfolder
-            )
-            if os.path.exists(source_folder):
-                for root, _, files in os.walk(source_folder):
-                    for file in files:
-                        file_path = os.path.relpath(
-                            os.path.join(root, file), start=source_folder
-                        )
-                        current_files.add(file_path)
-                        full_file_path = os.path.join(root, file)
-                        if os.path.getmtime(full_file_path) > timestamp:
-                            folder_modified = True
->>>>>>> e7601d8d8452c0757b95e88a54c976cb4794bc1d
 
         if previous_files != current_files or folder_modified:
             if folder not in modified_folders:
@@ -1936,13 +1889,8 @@ def main():
         pretty_print("Publishing PDFs...", args.verbose)
         publish_assignment_pdfs()
 
-<<<<<<< HEAD
         pretty_print("Creating timestamp files...", args.verbose)
         create_timestamp_files(project_folders_to_process)
-=======
-        pretty_print("Creating timestamp and file list files...", args.verbose)
-        create_timestamp_files_and_file_lists(folders)
->>>>>>> e7601d8d8452c0757b95e88a54c976cb4794bc1d
 
         pretty_print("🎉🎉🎉   Done.", args.verbose)
 
@@ -1969,13 +1917,8 @@ def main():
     pretty_print("Publishing HTMLs...", args.verbose)
     publish_htmls()
 
-<<<<<<< HEAD
     pretty_print("Creating timestamp files...", args.verbose)
     create_timestamp_files(project_folders_to_process)
-=======
-    pretty_print("Creating timestamp and file list files...", args.verbose)
-    create_timestamp_files_and_file_lists(folders)
->>>>>>> e7601d8d8452c0757b95e88a54c976cb4794bc1d
 
     pretty_print("🎉🎉🎉   Done.", args.verbose)
 
