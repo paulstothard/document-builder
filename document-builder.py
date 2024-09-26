@@ -275,13 +275,49 @@ def create_project(folder_path, include_example_documents=False):
 
 def create_timestamp_files(folders):
     build_logs_folder = config["project_build_logs_folder"]
+    data_to_share_links_folder = config["project_data_to_share_links_folder"]
+    project_source_folder = config["project_source_folder"]
 
     for folder in folders:
         folder_log_folder = os.path.join(build_logs_folder, folder)
         os.makedirs(folder_log_folder, exist_ok=True)
+
+        # Create or update the timestamp file
         timestamp_file = os.path.join(folder_log_folder, "timestamp.txt")
         with open(timestamp_file, "w") as f:
             f.write(str(time.time()))
+
+        # Generate the file list
+        file_list_file = os.path.join(folder_log_folder, "file_list.txt")
+        files_in_folder = []
+
+        # Collect files in the source folder and subfolders
+        source_folder = project_source_folder  # Base directory for consistency
+        for root, _, files in os.walk(os.path.join(project_source_folder, folder)):
+            for file in files:
+                # Skip hidden files (files that start with a dot)
+                if not file.startswith("."):
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(
+                        file_path, start=project_source_folder
+                    )
+                    files_in_folder.append(relative_path)
+
+        # Include data_to_share_links_file
+        data_link_file = os.path.join(data_to_share_links_folder, f"{folder}.txt")
+        if os.path.exists(data_link_file) and not os.path.basename(
+            data_link_file
+        ).startswith("."):
+            relative_path = os.path.relpath(data_link_file, start=project_source_folder)
+            files_in_folder.append(relative_path)
+
+        # Sort the file list for consistency
+        files_in_folder.sort()
+
+        # Write the file list to file_list.txt
+        with open(file_list_file, "w") as f:
+            for file_path in files_in_folder:
+                f.write(f"{file_path}\n")
 
 
 def edit_markdown_includes(folders):
@@ -605,31 +641,62 @@ def get_license_as_markdown():
 
 def get_modified_data_folders(folders):
     build_logs_folder = config["project_build_logs_folder"]
+    project_source_folder = config["project_source_folder"]
     modified_folders = []
 
     for folder in folders:
         folder_log_folder = os.path.join(build_logs_folder, folder)
         timestamp_file = os.path.join(folder_log_folder, "timestamp.txt")
+        file_list_file = os.path.join(folder_log_folder, "file_list.txt")
 
-        if os.path.exists(timestamp_file):
-            with open(timestamp_file, "r") as f:
-                timestamp = float(f.read())
-        else:
+        # If timestamp or file_list.txt is missing, consider the folder modified
+        if not os.path.exists(timestamp_file) or not os.path.exists(file_list_file):
             modified_folders.append(folder)
             continue
 
+        # Read the timestamp
+        with open(timestamp_file, "r") as f:
+            timestamp = float(f.read())
+
+        # Read the previous file list and filter data files
+        with open(file_list_file, "r") as f:
+            all_previous_files = set(os.path.normpath(line.strip()) for line in f)
+
+        # Filter previous files to include only data files, ignoring hidden files
+        previous_data_files = set()
+        for file_path in all_previous_files:
+            if file_path.startswith(
+                os.path.join(folder, "data")
+            ) or file_path.startswith(os.path.join(folder, "data_not_tracked")):
+                if not os.path.basename(file_path).startswith("."):  # Skip hidden files
+                    previous_data_files.add(file_path)
+
+        # Collect current data files
+        current_data_files = set()
+        folder_modified = False
+
+        source_folder = os.path.join(project_source_folder, folder)
+
         for subfolder in ["data", "data_not_tracked"]:
-            source_folder = os.path.join(
-                config["project_source_folder"], folder, subfolder
-            )
-            if os.path.exists(source_folder):
-                for root, dirs, files in os.walk(source_folder):
+            data_folder = os.path.join(source_folder, subfolder)
+            if os.path.exists(data_folder):
+                for root, _, files in os.walk(data_folder):
                     for file in files:
+                        if file.startswith("."):
+                            continue  # Skip hidden files
                         file_path = os.path.join(root, file)
+                        relative_path = os.path.normpath(
+                            os.path.relpath(file_path, start=project_source_folder)
+                        )
+                        current_data_files.add(relative_path)
+
+                        # Check if the file was modified after the last timestamp
                         if os.path.getmtime(file_path) > timestamp:
-                            if folder not in modified_folders:
-                                modified_folders.append(folder)
-                            break
+                            folder_modified = True
+
+        # Compare the current and previous data files
+        if current_data_files != previous_data_files or folder_modified:
+            modified_folders.append(folder)
 
     return modified_folders
 
@@ -637,38 +704,64 @@ def get_modified_data_folders(folders):
 def get_modified_folders(folders):
     build_logs_folder = config["project_build_logs_folder"]
     data_to_share_links_folder = config["project_data_to_share_links_folder"]
+    project_source_folder = config["project_source_folder"]
     modified_folders = []
 
     for folder in folders:
         folder_log_folder = os.path.join(build_logs_folder, folder)
         timestamp_file = os.path.join(folder_log_folder, "timestamp.txt")
+        file_list_file = os.path.join(folder_log_folder, "file_list.txt")
 
-        if os.path.exists(timestamp_file):
-            with open(timestamp_file, "r") as f:
-                timestamp = float(f.read())
-        else:
+        # If timestamp or file list is missing, consider the folder modified
+        if not os.path.exists(timestamp_file) or not os.path.exists(file_list_file):
             modified_folders.append(folder)
             continue
 
-        source_folder = os.path.join(config["project_source_folder"], folder)
-        data_to_share_links_file = os.path.join(
-            data_to_share_links_folder, f"{folder}.txt"
-        )
+        # Read the timestamp
+        with open(timestamp_file, "r") as f:
+            timestamp = float(f.read())
 
-        for root, dirs, files in os.walk(source_folder):
+        # Read the previous file list, ignoring hidden files
+        with open(file_list_file, "r") as f:
+            previous_files = set(
+                os.path.normpath(line.strip())
+                for line in f
+                if not os.path.basename(line.strip()).startswith(".")
+            )
+
+        current_files = set()
+        folder_modified = False
+
+        # Collect current files using the same base directory, skipping hidden files
+        for root, _, files in os.walk(os.path.join(project_source_folder, folder)):
             for file in files:
+                if file.startswith("."):
+                    continue  # Skip hidden files
                 file_path = os.path.join(root, file)
-                if os.path.getmtime(file_path) > timestamp:
-                    if folder not in modified_folders:
-                        modified_folders.append(folder)
-                    break
+                relative_path = os.path.normpath(
+                    os.path.relpath(file_path, start=project_source_folder)
+                )
+                current_files.add(relative_path)
 
-        if (
-            os.path.exists(data_to_share_links_file)
-            and os.path.getmtime(data_to_share_links_file) > timestamp
-        ):
-            if folder not in modified_folders:
-                modified_folders.append(folder)
+                # Check if the file was modified after the last timestamp
+                file_mod_time = os.path.getmtime(file_path)
+                if file_mod_time > timestamp:
+                    folder_modified = True
+
+        # Include data_to_share_links_file, skipping hidden files
+        data_link_file = os.path.join(data_to_share_links_folder, f"{folder}.txt")
+        if os.path.exists(data_link_file):
+            if not os.path.basename(data_link_file).startswith("."):
+                relative_path = os.path.normpath(
+                    os.path.relpath(data_link_file, start=project_source_folder)
+                )
+                current_files.add(relative_path)
+                if os.path.getmtime(data_link_file) > timestamp:
+                    folder_modified = True
+
+        # Compare the current and previous file lists
+        if current_files != previous_files or folder_modified:
+            modified_folders.append(folder)
 
     return modified_folders
 
@@ -1677,8 +1770,19 @@ def main():
                 pretty_print_error(f"Folder does not exist: {value}")
                 sys.exit(1)
 
-    folders = get_folders_list(config["project_source_folder"])
-    folders_copy = folders.copy()
+    # use all_project_folders to store all the folders in the
+    # project_source_folder
+    all_project_folders = get_folders_list(config["project_source_folder"])
+
+    # use project_folders_to_process to store the folders that need to be
+    # processed. Initially it will be the same as all_project_folders but it
+    # will be updated based on the command-line arguments and based on the
+    # folders that have modified documents or data files
+    project_folders_to_process = get_folders_list(config["project_source_folder"])
+
+    # use project_data_folders_to_process to store the folders that need new
+    # zip files generated because the data files have changed
+    project_data_folders_to_process = get_folders_list(config["project_source_folder"])
 
     pretty_print("Checking executables...", args.verbose)
     executables = {
@@ -1704,22 +1808,32 @@ def main():
 
     if hasattr(args, "force") and args.force:
         pretty_print("Forcing reprocessing of all documents...", args.verbose)
+        for folder in all_project_folders:
+            pretty_print(f"Processing folder: {folder}", args.verbose)
+
     else:
         pretty_print("Checking for modified documents...", args.verbose)
-        folders = get_modified_folders(folders)
+        project_folders_to_process = get_modified_folders(all_project_folders)
+        for folder in project_folders_to_process:
+            pretty_print(f"Processing folder: {folder}", args.verbose)
 
     if hasattr(args, "force") and args.force:
         pretty_print("Copying and compressing all data folders...", args.verbose)
-        copy_and_compress_data_folders(folders_copy)
+        for folder in all_project_folders:
+            pretty_print(f"Processing data folder: {folder}", args.verbose)
+        copy_and_compress_data_folders(all_project_folders)
     else:
         pretty_print("Copying and compressing modified data folders...", args.verbose)
-        copy_and_compress_data_folders(get_modified_data_folders(folders_copy))
+        project_data_folders_to_process = get_modified_data_folders(all_project_folders)
+        for folder in project_data_folders_to_process:
+            pretty_print(f"Processing data folder: {folder}", args.verbose)
+        copy_and_compress_data_folders(project_data_folders_to_process)
 
     pretty_print("Publishing data...", args.verbose)
     publish_data()
 
     pretty_print("Creating link files...", args.verbose)
-    create_link_files(folders)
+    create_link_files(project_folders_to_process)
 
     if args.command == "dropbox":
         if not dropbox_available:
@@ -1733,63 +1847,63 @@ def main():
 
             if not (hasattr(args, "force") and args.force):
                 # need to reprocess documents that have modified link files
-                folders = get_modified_folders(folders_copy)
+                project_folders_to_process = get_modified_folders(all_project_folders)
         else:
             pretty_print("No data files to share", args.verbose)
 
     pretty_print("Copying source folders to Markdown output...", args.verbose)
-    copy_source_folders_to_markdown_output(folders)
+    copy_source_folders_to_markdown_output(project_folders_to_process)
 
     pretty_print("Editing Markdown includes...", args.verbose)
-    edit_markdown_includes(folders)
+    edit_markdown_includes(project_folders_to_process)
 
     pretty_print("Running spellchecker...", args.verbose)
-    run_spellchecker(folders)
+    run_spellchecker(project_folders_to_process)
 
     pretty_print("Running Markdown link check...", args.verbose)
-    run_markdown_link_check(folders)
+    run_markdown_link_check(project_folders_to_process)
 
     pretty_print("Running Markdown lint...", args.verbose)
-    run_markdown_lint(folders)
+    run_markdown_lint(project_folders_to_process)
 
     pretty_print(
         "Replacing [DATA_DOWNLOAD_LINK] with data links in Markdown...", args.verbose
     )
-    replace_data_download_links_in_markdown(folders)
+    replace_data_download_links_in_markdown(project_folders_to_process)
 
     if hasattr(args, "assignment") and args.assignment:
         pretty_print("Processing documents as assignments...", args.verbose)
 
         pretty_print("Validating assignment Markdown...", args.verbose)
-        validate_assignment_markdown(folders)
+        validate_assignment_markdown(project_folders_to_process)
 
         pretty_print("Generating new Markdown...", args.verbose)
-        generate_assignment_markdown(folders)
+        generate_assignment_markdown(project_folders_to_process)
 
         pretty_print("Generating PDFs...", args.verbose)
-        generate_assignment_pdfs(folders)
+        generate_assignment_pdfs(project_folders_to_process)
 
         pretty_print("Publishing PDFs...", args.verbose)
         publish_assignment_pdfs()
 
         pretty_print("Creating timestamp files...", args.verbose)
-        create_timestamp_files(folders)
+        create_timestamp_files(project_folders_to_process)
 
         pretty_print("🎉🎉🎉   Done.", args.verbose)
 
         sys.exit(0)
 
     pretty_print("Generating new Markdown...", args.verbose)
-    generate_markdown(folders)
+    generate_markdown(project_folders_to_process)
 
     pretty_print("Generating PDFs...", args.verbose)
-    generate_pdfs(folders)
+    generate_pdfs(project_folders_to_process)
 
     pretty_print("Removing page breaks...", args.verbose)
-    remove_pagebreaks(folders)
+    remove_pagebreaks(project_folders_to_process)
 
     pretty_print("Generating HTMLs...", args.verbose)
-    generate_htmls(folders)
+    generate_htmls(project_folders_to_process)
 
     pretty_print("Publishing PDFs...", args.verbose)
     publish_pdfs()
@@ -1801,7 +1915,7 @@ def main():
     publish_htmls()
 
     pretty_print("Creating timestamp files...", args.verbose)
-    create_timestamp_files(folders)
+    create_timestamp_files(project_folders_to_process)
 
     pretty_print("🎉🎉🎉   Done.", args.verbose)
 
