@@ -273,7 +273,7 @@ def create_project(folder_path, include_example_documents=False):
     pretty_print("Project created successfully.")
 
 
-def create_timestamp_files_and_file_lists(folders):
+def create_timestamp_files(folders):
     build_logs_folder = config["project_build_logs_folder"]
     data_to_share_links_folder = config["project_data_to_share_links_folder"]
     project_source_folder = config["project_source_folder"]
@@ -698,9 +698,6 @@ def get_modified_data_folders(folders):
         if current_data_files != previous_data_files or folder_modified:
             modified_folders.append(folder)
 
-        if previous_files != current_files or folder_modified:
-            if folder not in modified_folders:
-                modified_folders.append(folder)
     return modified_folders
 
 
@@ -852,7 +849,6 @@ def import_markdown_files(source):
             f.write(content)
             f.truncate()
 
-    # extract yaml header if present
     # extract yaml header if present
     for file_path in file_paths:
         # get the folder name
