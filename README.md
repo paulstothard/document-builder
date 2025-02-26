@@ -15,9 +15,10 @@ The `document-builder.py` script produces nicely formatted PDF and HTML document
 First create a virtual environment and install the required packages:
 
 ```bash
-python -m venv venv
+# edit the path to the desired Python executable as needed
+/usr/local/bin/python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+venv/bin/python -m pip install -r requirements.txt
 ```
 
 Create a new empty project using the `create` command:
