@@ -596,25 +596,43 @@ def generate_pdfs(folders):
         subprocess.run(command)
 
 
-def get_dropbox_client(access_token):
-    while True:
-        if not access_token:
-            pretty_print_error("Dropbox access token not set.")
-            access_token = input("Enter the new access token or 'q' to quit: ")
-            if access_token.lower() == "q":
-                sys.exit(0)
+def get_dropbox_client():
+    app_key = os.getenv("DOCUMENT_BUILDER_DROPBOX_APP_KEY")
+    app_secret = os.getenv("DOCUMENT_BUILDER_DROPBOX_APP_SECRET")
+    token_file = os.getenv("DOCUMENT_BUILDER_DROPBOX_TOKEN_FILE")
 
-        dbx = dropbox.Dropbox(access_token)
-        try:
-            # Try to get account info
-            dbx.users_get_current_account()
-            return dbx
-        except AuthError:
-            # If an AuthError is raised, the access token is invalid or expired
-            pretty_print_error(
-                "The access token is invalid or expired. Retrieve a new access token from the Dropbox App Console and enter it below, or enter 'q' to quit."
-            )
-            access_token = None  # Reset access_token to prompt user input
+    if not all([app_key, app_secret, token_file]):
+        pretty_print_error("Missing one or more required environment variables:")
+        print("  DOCUMENT_BUILDER_DROPBOX_APP_KEY")
+        print("  DOCUMENT_BUILDER_DROPBOX_APP_SECRET")
+        print("  DOCUMENT_BUILDER_DROPBOX_TOKEN_FILE")
+        print("➡️  Please run authorize-dropbox.py to configure Dropbox credentials.")
+        sys.exit(1)
+
+    if not os.path.exists(token_file):
+        pretty_print_error(f"Token file not found: {token_file}")
+        print("➡️  Please run authorize-dropbox.py to generate it.")
+        sys.exit(1)
+
+    try:
+        with open(token_file, "r") as f:
+            refresh_token = json.load(f)["refresh_token"]
+    except Exception as e:
+        pretty_print_error(f"Failed to read refresh token from file: {e}")
+        sys.exit(1)
+
+    try:
+        dbx = dropbox.Dropbox(
+            app_key=app_key,
+            app_secret=app_secret,
+            oauth2_refresh_token=refresh_token,
+        )
+        dbx.users_get_current_account()
+        return dbx
+    except dropbox.exceptions.AuthError as e:
+        pretty_print_error(f"Dropbox authentication failed: {e}")
+        print("➡️  Please re-run authorize-dropbox.py to refresh your credentials.")
+        sys.exit(1)
 
 
 def get_folders_list(source_folder):
@@ -1371,7 +1389,6 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
     publish_folder_data = config["publish_folder_data"]
     data_to_share_links_folder = config["project_data_to_share_links_folder"]
     project_id = config["id"]
-    access_token = os.getenv(config["dropbox_access_token_variable"])
 
     # give error if id is not set
     if not project_id:
@@ -1380,7 +1397,7 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
 
     dropbox_folder_name = f"{project_id}/{os.path.basename(project_root)}"
 
-    dbx = get_dropbox_client(access_token)
+    dbx = get_dropbox_client()
 
     file_links = []
     for file_name in os.listdir(publish_folder_data):
