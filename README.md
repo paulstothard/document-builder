@@ -129,7 +129,7 @@ Should you need to update the data provided with the document, you can modify th
 
 Alternatively, you can use the `dropbox` command in place of the `process` command to automatically upload the compressed data files and insert the shareable links in place of instances of `[DATA_DOWNLOAD_LINK]` in the documents.
 
-## Dropbox Sync Setup for `document-builder`
+## Dropbox sync setup
 
 This guide explains how to configure Dropbox syncing for the `document-builder` project using OAuth 2.0 and long-lived refresh tokens.
 
@@ -140,7 +140,7 @@ This guide explains how to configure Dropbox syncing for the `document-builder` 
 - Your Dropbox App Key and App Secret
 - The `authorize-dropbox.py` script (included in the `document-builder` repository)
 
-### Step 1: Create a Dropbox App
+### Step 1: Create a Dropbox app
 
 1. Visit [https://www.dropbox.com/developers/apps](https://www.dropbox.com/developers/apps)
 2. Choose:
@@ -162,7 +162,7 @@ This guide explains how to configure Dropbox syncing for the `document-builder` 
 urn:ietf:wg:oauth:2.0:oob
 ```
 
-### Step 2: Authorize and Generate a Refresh Token
+### Step 2: Authorize and generate a refresh token
 
 Run the script to authorize the app:
 
@@ -178,7 +178,7 @@ Follow the prompts:
 
 The script will generate a file (e.g., `~/.document-builder-secrets.json`) containing your refresh token.
 
-### Step 3: Set Environment Variables
+### Step 3: Set environment variables
 
 Add the following lines to your shell config file (e.g., `~/.bashrc`, `~/.zshrc`, or `~/.bash_profile`):
 
@@ -197,17 +197,17 @@ Then run:
 source ~/.bashrc  # or ~/.zshrc
 ```
 
-### Using `build-dropbox`
+### Synching files to Dropbox
 
 - If you have changed data files, run:
 
 ```bash
-just build-dropbox
+python document-builder.py dropbox -c my_project/config/config.json
 ```
 
 This will sync the changes to Dropbox.
 
-### Refresh Token Notes
+### Refresh token notes
 
 - Your refresh token is long-lived and does not expire under normal use
 - The script automatically refreshes short-lived access tokens behind the scenes
