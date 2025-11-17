@@ -1405,32 +1405,43 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
             source_data_file = os.path.join(publish_folder_data, file_name)
             destination_data_file = f"/{dropbox_folder_name}/{file_name}"
 
-            try:
-                # Check if the file exists on Dropbox
-                metadata = dbx.files_get_metadata(destination_data_file)
-                dropbox_file_time = metadata.server_modified
+            should_upload = force  # If force=True, always upload
 
-                # Get the modification time of the local file in local time
-                local_file_time_naive = datetime.fromtimestamp(
-                    os.path.getmtime(source_data_file)
-                )
+            if not force:
+                try:
+                    # Check if the file exists on Dropbox
+                    metadata = dbx.files_get_metadata(destination_data_file)
+                    dropbox_file_time = metadata.server_modified
 
-                # Convert the local time to UTC
-                local_file_time = local_file_time_naive.astimezone(timezone.utc)
+                    # Get the modification time of the local file in local time
+                    local_file_time_naive = datetime.fromtimestamp(
+                        os.path.getmtime(source_data_file)
+                    )
 
-                # Convert dropbox_file_time to an offset-aware datetime object
-                dropbox_file_time = dropbox_file_time.replace(tzinfo=timezone.utc)
+                    # Convert the local time to UTC
+                    local_file_time = local_file_time_naive.astimezone(timezone.utc)
 
-                # Compare the modification times
-                if local_file_time > dropbox_file_time or force:
-                    # Local file is newer or force is True, proceed to upload
-                    raise FileNotFoundError
-                else:
-                    # File is already up-to-date on Dropbox
-                    pretty_print(f"{file_name} is already up-to-date on Dropbox.", True)
-                    continue
-            except (dropbox.exceptions.ApiError, FileNotFoundError):
-                # If the file does not exist on Dropbox or local file is newer, upload it
+                    # Convert dropbox_file_time to an offset-aware datetime object
+                    dropbox_file_time = dropbox_file_time.replace(tzinfo=timezone.utc)
+
+                    # Compare the modification times (add small buffer for precision differences)
+                    time_diff = (local_file_time - dropbox_file_time).total_seconds()
+
+                    if time_diff > 1:  # Local file is more than 1 second newer
+                        should_upload = True
+                        pretty_print(f"  Local file '{file_name}' is newer, will upload", True)
+                    else:
+                        pretty_print(f"  File '{file_name}' is up to date on Dropbox, skipping upload", True)
+
+                except (dropbox.exceptions.ApiError, FileNotFoundError) as e:
+                    # File doesn't exist on Dropbox
+                    should_upload = True
+                    pretty_print(
+                        f"File {file_name} not found on Dropbox or error occurred: {e}",
+                        True,
+                    )
+
+            if should_upload:
                 pretty_print(f"Uploading {file_name} to Dropbox...", True)
                 CHUNK_SIZE = 4 * 1024 * 1024  # 4MB
 
@@ -1492,6 +1503,20 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
 
                 # Create a tuple of the file name and the shareable link and add it to the list
                 file_links.append((file_name, shared_link_metadata.url))
+            else:
+                # File wasn't uploaded but we still need to get/create the shareable link
+                try:
+                    # Try to get existing shared links
+                    shared_links = dbx.sharing_list_shared_links(
+                        path=destination_data_file
+                    ).links
+                    if shared_links:
+                        shared_link_metadata = shared_links[0]
+                        file_links.append((file_name, shared_link_metadata.url))
+                except dropbox.exceptions.ApiError as err:
+                    pretty_print_error(
+                        f"Failed to get shareable link for {file_name}: {err}"
+                    )
 
     # loop through the file_links list and write the sharable link to the corresponding file in data_to_share_links_folder
     for file_link in file_links:
@@ -1514,11 +1539,6 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
                     f"Shareable link for {file_link[0]} written to {data_to_share_links_folder}",
                     True,
                 )
-        else:
-            pretty_print(
-                f"Shareable link for {file_link[0]} already exists in {data_to_share_links_folder}",
-                True,
-            )
 
 
 def validate_assignment_markdown(folders):
