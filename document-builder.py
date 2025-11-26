@@ -442,6 +442,28 @@ def generate_assignment_markdown(folders):
                         if match:
                             question_number = match.group(1)
                 if question_number is not None:
+                    # Detect appendix/supplementary headings
+                    is_appendix_heading = not in_code_block and re.match(
+                        r"^#+\s+(Appendix|Appendices|Supplementary\s+Material)\b",
+                        lines[i],
+                        re.IGNORECASE,
+                    )
+
+                    # Detect \pagebreak immediately before such headings
+                    is_pagebreak_before_appendix = (
+                        not in_code_block
+                        and lines[i].strip() == "\\pagebreak"
+                        and i + 1 < len(lines)
+                        and re.match(
+                            r"^#+\s+(Appendix|Appendices|Supplementary\s+Material)\b",
+                            lines[i + 1],
+                            re.IGNORECASE,
+                        )
+                    )
+
+                    if is_appendix_heading or is_pagebreak_before_appendix:
+                        break
+
                     new_lines.append(lines[i])
                 i += 1
             # Handle the last question
@@ -1429,9 +1451,14 @@ def upload_data_files_to_dropbox_and_set_shareable_links(force=False):
 
                     if time_diff > 1:  # Local file is more than 1 second newer
                         should_upload = True
-                        pretty_print(f"  Local file '{file_name}' is newer, will upload", True)
+                        pretty_print(
+                            f"  Local file '{file_name}' is newer, will upload", True
+                        )
                     else:
-                        pretty_print(f"  File '{file_name}' is up to date on Dropbox, skipping upload", True)
+                        pretty_print(
+                            f"  File '{file_name}' is up to date on Dropbox, skipping upload",
+                            True,
+                        )
 
                 except (dropbox.exceptions.ApiError, FileNotFoundError) as e:
                     # File doesn't exist on Dropbox
