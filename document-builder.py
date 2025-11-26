@@ -4,6 +4,7 @@ Author:
     Paul Stothard
 """
 
+
 import argparse
 from datetime import datetime
 from datetime import timezone
@@ -19,6 +20,39 @@ import textwrap
 import time
 import uuid
 import zipfile
+
+# ---------------------------------------------------------
+# Line classification helpers
+# ---------------------------------------------------------
+
+def is_question_heading(line):
+    return re.match(r"^#+\s+Question\b", line, re.IGNORECASE)
+
+def is_answer_heading(line):
+    return re.match(r"^#+\s+Answer\b", line, re.IGNORECASE)
+
+def is_appendix_heading(line):
+    return re.match(r"^#+\s+(Appendix|Appendices|Supplementary\s+Material)\b",
+                    line, re.IGNORECASE)
+
+def is_pagebreak(line):
+    return line.strip() == "\\pagebreak"
+
+def is_blank(line):
+    return not line.strip()
+
+def classify_line(line):
+    if is_question_heading(line):
+        return "question"
+    if is_answer_heading(line):
+        return "answer"
+    if is_appendix_heading(line):
+        return "appendix"
+    if is_pagebreak(line):
+        return "pagebreak"
+    if is_blank(line):
+        return "blank"
+    return "other"
 
 required_major = 3
 required_minor = 8
@@ -388,20 +422,46 @@ def generate_assignment_markdown(folders):
             content = f.read()
             lines = content.splitlines()
             new_lines = []
-            in_code_block = False
-            in_answer_block = False
+
             i = 0
             while i < len(lines):
-                if lines[i].strip().startswith("```"):
-                    in_code_block = not in_code_block
-                if not in_code_block:
-                    if re.match(r"^#+ answer", lines[i], re.IGNORECASE):
-                        in_answer_block = True
-                    elif re.match(r"^#+ question", lines[i], re.IGNORECASE):
-                        in_answer_block = False
-                if not in_answer_block and i < len(lines):
-                    new_lines.append(lines[i])
+                line = lines[i]
+
+                # If this is an Answer heading, skip the answer content
+                if is_answer_heading(line):
+                    # Find the start of the next heading (or end of file)
+                    k = i + 1
+                    while k < len(lines) and not lines[k].lstrip().startswith("#"):
+                        k += 1
+
+                    # Within the answer block (i+1 .. k-1), identify the last
+                    # non-formatting line (i.e., not blank and not \\pagebreak).
+                    last_content_idx = None
+                    for idx in range(i + 1, k):
+                        if lines[idx].strip() not in ("", "\\pagebreak"):
+                            last_content_idx = idx
+
+                    if last_content_idx is None:
+                        # No real content (only blank/pagebreak lines) –
+                        # drop the Answer heading itself and keep all lines.
+                        for idx in range(i + 1, k):
+                            new_lines.append(lines[idx])
+                    else:
+                        # Drop the Answer heading and all answer-content lines
+                        # up to last_content_idx. Keep only trailing formatting
+                        # (blank lines and \\pagebreak) between the answer and
+                        # the next heading.
+                        for idx in range(last_content_idx + 1, k):
+                            new_lines.append(lines[idx])
+
+                    # Continue processing from the next heading (or EOF)
+                    i = k
+                    continue
+
+                # Not an Answer heading – keep the line
+                new_lines.append(line)
                 i += 1
+
             new_content = "\n".join(new_lines)
 
         with open(
@@ -442,33 +502,19 @@ def generate_assignment_markdown(folders):
                         if match:
                             question_number = match.group(1)
                 if question_number is not None:
-                    # Detect appendix/supplementary headings
-                    is_appendix_heading = not in_code_block and re.match(
-                        r"^#+\s+(Appendix|Appendices|Supplementary\s+Material)\b",
-                        lines[i],
-                        re.IGNORECASE,
-                    )
+                    kind = classify_line(lines[i])
 
-                    # Detect \pagebreak followed by optional blank lines before an appendix/supplementary heading
-                    is_pagebreak_before_appendix = False
-                    if not in_code_block and lines[i].strip() == "\\pagebreak":
-                        j = i + 1
-                        # Skip any blank or whitespace-only lines
-                        while j < len(lines) and not lines[j].strip():
-                            j += 1
-                        # Now check if the next non-blank line is an appendix/supplementary heading
-                        if (
-                            j < len(lines)
-                            and re.match(
-                                r"^#+\s+(Appendix|Appendices|Supplementary\s+Material)\b",
-                                lines[j],
-                                re.IGNORECASE,
-                            )
-                        ):
-                            is_pagebreak_before_appendix = True
-
-                    if is_appendix_heading or is_pagebreak_before_appendix:
+                    # Stop at appendix heading
+                    if kind == "appendix":
                         break
+
+                    # Stop at pagebreak followed by blank lines then an appendix
+                    if kind == "pagebreak":
+                        j = i + 1
+                        while j < len(lines) and classify_line(lines[j]) == "blank":
+                            j += 1
+                        if j < len(lines) and classify_line(lines[j]) == "appendix":
+                            break
 
                     new_lines.append(lines[i])
                 i += 1
