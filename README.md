@@ -229,6 +229,8 @@ See the `sample-project/final_documents` folder for sample output from test data
 
 Assignment mode (using the `process` command with the `--assignment` option) is used to generate assignment and assignment key PDFs from specially formatted Markdown documents. The `markdown_assignments_for_import` folder contains three sample assignment documents. The final documents generated from these files are available in the `sample-project-assignment/final_documents` folder. For assignment projects several PDFs are generated for each input document: a student version of the assignment, an instructor version of the assignment (i.e. with answers), and feedback files (PDFs that provide the answer for a single question).
 
+When generating feedback files, the parser now excludes appendix and supplementary sections. Any headings matching “Appendix”, “Appendices”, or “Supplementary Material” (at any heading level) trigger the end of the final feedback file so that these sections are not included. If a `\pagebreak` appears immediately before such a heading, it is also removed from the feedback file to avoid producing a blank final page when the Markdown is later converted to PDF. The full assignment and instructor versions continue to include all appendices and all `\pagebreak` commands.
+
 To make use of this mode, use the following simple structure for the Markdown documents:
 
 ```md

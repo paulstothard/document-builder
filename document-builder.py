@@ -449,17 +449,23 @@ def generate_assignment_markdown(folders):
                         re.IGNORECASE,
                     )
 
-                    # Detect \pagebreak immediately before such headings
-                    is_pagebreak_before_appendix = (
-                        not in_code_block
-                        and lines[i].strip() == "\\pagebreak"
-                        and i + 1 < len(lines)
-                        and re.match(
-                            r"^#+\s+(Appendix|Appendices|Supplementary\s+Material)\b",
-                            lines[i + 1],
-                            re.IGNORECASE,
-                        )
-                    )
+                    # Detect \pagebreak followed by optional blank lines before an appendix/supplementary heading
+                    is_pagebreak_before_appendix = False
+                    if not in_code_block and lines[i].strip() == "\\pagebreak":
+                        j = i + 1
+                        # Skip any blank or whitespace-only lines
+                        while j < len(lines) and not lines[j].strip():
+                            j += 1
+                        # Now check if the next non-blank line is an appendix/supplementary heading
+                        if (
+                            j < len(lines)
+                            and re.match(
+                                r"^#+\s+(Appendix|Appendices|Supplementary\s+Material)\b",
+                                lines[j],
+                                re.IGNORECASE,
+                            )
+                        ):
+                            is_pagebreak_before_appendix = True
 
                     if is_appendix_heading or is_pagebreak_before_appendix:
                         break
