@@ -2,5 +2,5 @@
 title: "Assignment 2"
 author: [Course - Your name here]
 colorlinks: TRUE
-code-block-font-size: \footnotesize
+code-block-font-size: "\\footnotesize"
 ...
