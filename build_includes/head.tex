@@ -1,19 +1,53 @@
+% ============================================================
+% Inline code styling using tcolorbox
+% ============================================================
+% - Provides a subtle boxed background for inline code
+% - Uses monospace font at footnotesize
+% - Rounded corners, no visible border
+% - Intended for short inline snippets only (not blocks)
+% ============================================================
+
 \usepackage{tcolorbox}
 
+% Light neutral background for inline code
 \definecolor{bgcolor}{HTML}{F0F0F0}
 
-\newtcbox{\mycode}{on line, 
-                   colback=bgcolor, 
-                   boxrule=0pt, 
-                   boxsep=1pt, 
-                   left=1pt,   % Adjust this for left padding
-                   right=1pt,  % Adjust this for right padding
-                   top=2pt,
-                   bottom=2pt,
-                   fontupper={\ttfamily\footnotesize},
-                   arc=3pt, 
-                   outer arc=3pt}
+% Define inline code box (purple text)
+\definecolor{codepurple}{HTML}{7C3AED}
 
+% Define inline code box
+\newtcbox{\mycode}{
+  on line,                 % Inline (flows with text)
+  colback=bgcolor,         % Background color
+  coltext=codepurple,      % Purple text
+  boxrule=0pt,             % No border line
+  boxsep=1pt,              % Inner padding
+  left=1pt,                % Horizontal padding
+  right=1pt,
+  top=2pt,                 % Vertical padding
+  bottom=2pt,
+  fontupper={\ttfamily\footnotesize}, % Monospace, small
+  arc=3pt,                 % Rounded corners
+  outer arc=3pt
+}
 
+% Preserve original \texttt and wrap it with the code box
 \let\oldtexttt\texttt
 \renewcommand{\texttt}[1]{\mycode{\oldtexttt{#1}}}
+
+
+% ============================================================
+% Table sizing: keep tables compact and unobtrusive
+% ============================================================
+% - Automatically reduces font size for tables
+% - Applies to both tabular and longtable environments
+% - Helps prevent tables from dominating the page
+% ============================================================
+
+\usepackage{etoolbox}
+
+% Reduce font size inside standard tables
+\AtBeginEnvironment{tabular}{\footnotesize}
+
+% Reduce font size inside long tables
+\AtBeginEnvironment{longtable}{\footnotesize}
